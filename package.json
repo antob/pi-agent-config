@@ -1,0 +1,42 @@
+{
+  "name": "pi-agent-config",
+  "version": "1.0.0",
+  "description": "My pi coding agent config",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/antob/pi-agent-config.git"
+  },
+  "readme": "README.md",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "pi-skill",
+    "pi-theme"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ],
+    "skills": [
+      "./skills",
+      "./node_modules/pi-teams/skills"
+    ],
+    "prompts": [
+      "./prompts"
+    ],
+    "themes": [
+      "./themes"
+    ]
+  },
+  "dependencies": {
+    "@mariozechner/pi-ai": "^0.67.2",
+    "@mariozechner/pi-coding-agent": "^0.67.2",
+    "@mariozechner/pi-tui": "^0.67.2",
+    "diff": "^9.0.0",
+    "micromatch": "^4.0.8"
+  },
+  "devDependencies": {
+    "@types/micromatch": "^4.0.10"
+  }
+}
