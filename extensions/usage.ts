@@ -10,16 +10,15 @@
 import type {
   ExtensionAPI,
   ExtensionCommandContext,
-  Theme,
+  Theme
 } from "@mariozechner/pi-coding-agent";
 import { DynamicBorder } from "@mariozechner/pi-coding-agent";
 import {
   CancellableLoader,
   Container,
-  Spacer,
   matchesKey,
   visibleWidth,
-  truncateToWidth,
+  truncateToWidth
 } from "@mariozechner/pi-tui";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -87,8 +86,8 @@ const DATA_COLUMNS: DataColumn[] = [
     width: 9,
     getValue: (s) =>
       formatNumber(
-        typeof s.sessions === "number" ? s.sessions : s.sessions.size,
-      ),
+        typeof s.sessions === "number" ? s.sessions : s.sessions.size
+      )
   },
   { label: "Msgs", width: 9, getValue: (s) => formatNumber(s.messages) },
   { label: "Cost", width: 9, getValue: (s) => formatCost(s.cost) },
@@ -97,20 +96,20 @@ const DATA_COLUMNS: DataColumn[] = [
     label: "↑In",
     width: 8,
     dimmed: true,
-    getValue: (s) => formatTokens(s.tokens.input),
+    getValue: (s) => formatTokens(s.tokens.input)
   },
   {
     label: "↓Out",
     width: 8,
     dimmed: true,
-    getValue: (s) => formatTokens(s.tokens.output),
+    getValue: (s) => formatTokens(s.tokens.output)
   },
   {
     label: "Cache",
     width: 8,
     dimmed: true,
-    getValue: (s) => formatTokens(s.tokens.cache),
-  },
+    getValue: (s) => formatTokens(s.tokens.cache)
+  }
 ];
 
 const TABLE_WIDTH =
@@ -169,7 +168,7 @@ interface SessionMessage {
 async function parseSessionFile(
   filePath: string,
   seenHashes: Set<string>,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<{ sessionId: string; messages: SessionMessage[] } | null> {
   try {
     const content = await readFile(filePath, "utf8");
@@ -221,7 +220,7 @@ async function parseSessionFile(
               output,
               cacheRead,
               cacheWrite,
-              timestamp,
+              timestamp
             });
           }
         }
@@ -240,7 +239,7 @@ async function parseSessionFile(
 function accumulateStats(
   target: BaseStats,
   cost: number,
-  tokens: { total: number; input: number; output: number; cache: number },
+  tokens: { total: number; input: number; output: number; cache: number }
 ): void {
   target.messages++;
   target.cost += cost;
@@ -264,19 +263,19 @@ function emptyProviderStats(): ProviderStats {
     messages: 0,
     cost: 0,
     tokens: emptyTokens(),
-    models: new Map(),
+    models: new Map()
   };
 }
 
 function emptyTimeFilteredStats(): TimeFilteredStats {
   return {
     providers: new Map(),
-    totals: { sessions: 0, messages: 0, cost: 0, tokens: emptyTokens() },
+    totals: { sessions: 0, messages: 0, cost: 0, tokens: emptyTokens() }
   };
 }
 
 async function collectUsageData(
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<UsageData | null> {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
@@ -293,7 +292,7 @@ async function collectUsageData(
   const data: UsageData = {
     today: emptyTimeFilteredStats(),
     thisWeek: emptyTimeFilteredStats(),
-    allTime: emptyTimeFilteredStats(),
+    allTime: emptyTimeFilteredStats()
   };
 
   const sessionFiles = await getAllSessionFiles(signal);
@@ -310,7 +309,7 @@ async function collectUsageData(
     const sessionContributed = {
       today: false,
       thisWeek: false,
-      allTime: false,
+      allTime: false
     };
 
     for (const msg of messages) {
@@ -326,7 +325,7 @@ async function collectUsageData(
         total: msg.input + msg.output,
         input: msg.input,
         output: msg.output,
-        cache: msg.cacheRead + msg.cacheWrite,
+        cache: msg.cacheRead + msg.cacheWrite
       };
 
       for (const period of periods) {
@@ -416,7 +415,7 @@ function padRight(s: string, len: number): string {
 const TAB_LABELS: Record<TabName, string> = {
   today: "Today",
   thisWeek: "This Week",
-  allTime: "All Time",
+  allTime: "All Time"
 };
 
 const TAB_ORDER: TabName[] = ["today", "thisWeek", "allTime"];
@@ -435,7 +434,7 @@ class UsageComponent {
     theme: Theme,
     data: UsageData,
     requestRender: () => void,
-    done: () => void,
+    done: () => void
   ) {
     this.theme = theme;
     this.requestRender = requestRender;
@@ -451,7 +450,7 @@ class UsageComponent {
       .map(([name]) => name);
     this.selectedIndex = Math.min(
       this.selectedIndex,
-      Math.max(0, this.providerOrder.length - 1),
+      Math.max(0, this.providerOrder.length - 1)
     );
   }
 
@@ -506,7 +505,7 @@ class UsageComponent {
       ...this.renderHeader(),
       ...this.renderRows(),
       ...this.renderTotals(),
-      ...this.renderHelp(),
+      ...this.renderHelp()
     ];
   }
 
@@ -537,14 +536,14 @@ class UsageComponent {
 
     return [
       th.fg("muted", headerLine),
-      th.fg("border", "─".repeat(TABLE_WIDTH)),
+      th.fg("accent", "─".repeat(TABLE_WIDTH))
     ];
   }
 
   private renderDataRow(
     name: string,
     stats: BaseStats & { sessions: Set<string> | number },
-    options: { indent?: number; selected?: boolean; dimAll?: boolean } = {},
+    options: { indent?: number; selected?: boolean; dimAll?: boolean } = {}
   ): string {
     const th = this.theme;
     const { indent = 0, selected = false, dimAll = false } = options;
@@ -594,22 +593,22 @@ class UsageComponent {
         : th.fg("dim", arrow + " ");
       const dataRow = this.renderDataRow(providerName, providerStats, {
         indent: 2,
-        selected: isSelected,
+        selected: isSelected
       });
       lines.push(prefix + dataRow.slice(2)); // Replace indent with arrow prefix
 
       // Model rows (if expanded)
       if (isExpanded) {
         const models = Array.from(providerStats.models.entries()).sort(
-          (a, b) => b[1].cost - a[1].cost,
+          (a, b) => b[1].cost - a[1].cost
         );
 
         for (const [modelName, modelStats] of models) {
           lines.push(
             this.renderDataRow(modelName, modelStats, {
               indent: 4,
-              dimAll: true,
-            }),
+              dimAll: true
+            })
           );
         }
       }
@@ -630,15 +629,15 @@ class UsageComponent {
         : padLeft(value, col.width);
     }
 
-    return [th.fg("border", "─".repeat(TABLE_WIDTH)), totalRow, ""];
+    return [th.fg("accent", "─".repeat(TABLE_WIDTH)), totalRow, ""];
   }
 
   private renderHelp(): string[] {
     return [
       this.theme.fg(
         "dim",
-        "[Tab/←→] period  [↑↓] select  [Enter] expand  [q] close",
-      ),
+        "[Tab/←→] period  [↑↓] select  [Enter] expand  [q] close"
+      )
     ];
   }
 
@@ -664,7 +663,7 @@ export default function (pi: ExtensionAPI) {
             tui,
             (s: string) => theme.fg("accent", s),
             (s: string) => theme.fg("muted", s),
-            "Loading Usage...",
+            "Loading Usage..."
           );
           let finished = false;
           const finish = (value: UsageData | null) => {
@@ -681,7 +680,7 @@ export default function (pi: ExtensionAPI) {
             .catch(() => finish(null));
 
           return loader;
-        },
+        }
       );
 
       if (!data) {
@@ -692,31 +691,29 @@ export default function (pi: ExtensionAPI) {
         const container = new Container();
 
         // Top border
-        container.addChild(new Spacer(1));
         container.addChild(
-          new DynamicBorder((s: string) => theme.fg("border", s)),
+          new DynamicBorder((s: string) => theme.fg("accent", s))
         );
-        container.addChild(new Spacer(1));
 
         const usage = new UsageComponent(
           theme,
           data,
           () => tui.requestRender(),
-          () => done(),
+          () => done()
         );
 
         return {
           render: (w: number) => {
             const borderLines = container.render(w);
             const usageLines = usage.render(w);
-            const bottomBorder = theme.fg("border", "─".repeat(w));
+            const bottomBorder = theme.fg("accent", "─".repeat(w));
             return [...borderLines, ...usageLines, "", bottomBorder];
           },
           invalidate: () => container.invalidate(),
           handleInput: (input: string) => usage.handleInput(input),
-          dispose: () => {},
+          dispose: () => {}
         };
       });
-    },
+    }
   });
 }

@@ -11,7 +11,7 @@ import {
   type SessionManager,
   DynamicBorder
 } from "@mariozechner/pi-coding-agent";
-import { Container, Text, Spacer } from "@mariozechner/pi-tui";
+import { Container, Text, Spacer, matchesKey } from "@mariozechner/pi-tui";
 
 export function formatTokens(tokens: number | undefined | null): string {
   if (tokens == null) return "Unknown";
@@ -201,7 +201,7 @@ export default function (pi: ExtensionAPI) {
 
           container.addChild(new Spacer(1));
           container.addChild(
-            new Text(theme.fg("dim", " Press any key to close"), 1, 0)
+            new Text(theme.fg("dim", " [q/Esc/Enter] close"), 1, 0)
           );
           container.addChild(
             new DynamicBorder((s: string) => theme.fg("accent", s))
@@ -210,10 +210,17 @@ export default function (pi: ExtensionAPI) {
           return {
             render: (w) => container.render(w),
             invalidate: () => container.invalidate(),
-            handleInput: (_data) => done(undefined)
+            handleInput: (data) => {
+              if (
+                matchesKey(data, "q") ||
+                matchesKey(data, "escape") ||
+                matchesKey(data, "enter")
+              ) {
+                done(undefined);
+              }
+            }
           };
-        },
-        { overlay: true }
+        }
       );
     }
   });
