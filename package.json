@@ -16,7 +16,8 @@
   ],
   "pi": {
     "extensions": [
-      "./extensions"
+      "./extensions",
+      "./node_modules/pi-teams/extensions/index.ts"
     ],
     "skills": [
       "./skills",
@@ -30,11 +31,12 @@
     ]
   },
   "dependencies": {
-    "@mariozechner/pi-ai": "^0.67.2",
-    "@mariozechner/pi-coding-agent": "^0.67.2",
-    "@mariozechner/pi-tui": "^0.67.2",
+    "@mariozechner/pi-ai": "^0.67.68",
+    "@mariozechner/pi-coding-agent": "^0.67.68",
+    "@mariozechner/pi-tui": "^0.67.68",
     "diff": "^9.0.0",
-    "micromatch": "^4.0.8"
+    "micromatch": "^4.0.8",
+    "pi-teams": "^0.9.14"
   },
   "devDependencies": {
     "@types/micromatch": "^4.0.10"
