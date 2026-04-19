@@ -8,26 +8,6 @@
   },
   "readme": "README.md",
   "type": "module",
-  "keywords": [
-    "pi-package",
-    "pi-extension",
-    "pi-skill",
-    "pi-theme"
-  ],
-  "pi": {
-    "extensions": [
-      "./extensions"
-    ],
-    "skills": [
-      "./skills"
-    ],
-    "prompts": [
-      "./prompts"
-    ],
-    "themes": [
-      "./themes"
-    ]
-  },
   "dependencies": {
     "@mariozechner/pi-ai": "^0.67.68",
     "@mariozechner/pi-coding-agent": "^0.67.68",

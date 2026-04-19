@@ -1,0 +1,46 @@
+{
+  "providers": {
+    "ollama": {
+      "baseUrl": "http://localhost:11434/v1",
+      "api": "openai-completions",
+      "apiKey": "ollama",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false
+      },
+      "models": [
+        {
+          "id": "gemma4:31b",
+          "contextWindow": 262144,
+          "input": ["text", "image"],
+          "reasoning": true
+        },
+        {
+          "id": "gemma4:26b",
+          "contextWindow": 262144,
+          "input": ["text", "image"],
+          "reasoning": true
+        }
+      ]
+    },
+    "llama-cpp": {
+      "baseUrl": "http://localhost:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "none",
+      "models": [
+        {
+          "id": "Qwen3.5-35B-A3B-GGUF",
+          "contextWindow": 262144
+        },
+        {
+          "id": "Qwen3-Coder-Next",
+          "contextWindow": 262144
+        },
+        {
+          "id": "GLM-4.7-Flash",
+          "contextWindow": 202752
+        }
+      ]
+    }
+  }
+}
