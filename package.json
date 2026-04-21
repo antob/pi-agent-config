@@ -8,12 +8,16 @@
   },
   "readme": "README.md",
   "type": "module",
+  "scripts": {
+    "typecheck": "tsc"
+  },
   "dependencies": {
-    "@mariozechner/pi-ai": "^0.67.68",
-    "@mariozechner/pi-coding-agent": "^0.67.68",
-    "@mariozechner/pi-tui": "^0.67.68",
+    "@mariozechner/pi-ai": "^0.68.0",
+    "@mariozechner/pi-coding-agent": "^0.68.0",
+    "@mariozechner/pi-tui": "^0.68.0",
     "diff": "^9.0.0",
-    "micromatch": "^4.0.8"
+    "micromatch": "^4.0.8",
+    "typescript": "^6.0.3"
   },
   "devDependencies": {
     "@types/micromatch": "^4.0.10"

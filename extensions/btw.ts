@@ -1,7 +1,7 @@
 import {
   buildSessionContext,
-  codingTools,
   createAgentSession,
+  createCodingTools,
   createExtensionRuntime,
   getMarkdownTheme,
   SessionManager,
@@ -11,11 +11,12 @@ import {
   type ExtensionCommandContext,
   type ExtensionContext,
   type ResourceLoader,
+  type ToolDefinition
 } from "@mariozechner/pi-coding-agent";
+import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import {
   type AssistantMessage,
-  type Message,
-  type ThinkingLevel as AiThinkingLevel,
+  type ThinkingLevel as AiThinkingLevel
 } from "@mariozechner/pi-ai";
 import {
   Container,
@@ -26,7 +27,7 @@ import {
   type Focusable,
   type KeybindingsManager,
   type OverlayHandle,
-  type TUI,
+  type TUI
 } from "@mariozechner/pi-tui";
 
 const BTW_ENTRY_TYPE = "btw-thread-entry";
@@ -36,7 +37,7 @@ const BTW_SYSTEM_PROMPT = [
   "You are BTW, a side-channel assistant embedded in the user's coding agent.",
   "You have access to the main conversation context — use it to give informed answers.",
   "Help with focused questions, planning, and quick explorations.",
-  "Be direct and practical.",
+  "Be direct and practical."
 ].join(" ");
 
 const BTW_SUMMARY_PROMPT =
@@ -84,7 +85,7 @@ function stripDynamicSystemPromptFooter(systemPrompt: string): string {
   return systemPrompt
     .replace(
       /\nCurrent date and time:[^\n]*(?:\nCurrent working directory:[^\n]*)?$/u,
-      "",
+      ""
     )
     .replace(/\nCurrent working directory:[^\n]*$/u, "")
     .trim();
@@ -92,12 +93,12 @@ function stripDynamicSystemPromptFooter(systemPrompt: string): string {
 
 function createBtwResourceLoader(
   ctx: ExtensionContext,
-  appendSystemPrompt: string[] = [BTW_SYSTEM_PROMPT],
+  appendSystemPrompt: string[] = [BTW_SYSTEM_PROMPT]
 ): ResourceLoader {
   const extensionsResult = {
     extensions: [],
     errors: [],
-    runtime: createExtensionRuntime(),
+    runtime: createExtensionRuntime()
   };
   const systemPrompt = stripDynamicSystemPromptFooter(ctx.getSystemPrompt());
 
@@ -110,7 +111,7 @@ function createBtwResourceLoader(
     getSystemPrompt: () => systemPrompt,
     getAppendSystemPrompt: () => appendSystemPrompt,
     extendResources: () => {},
-    reload: async () => {},
+    reload: async () => {}
   };
 }
 
@@ -149,7 +150,7 @@ function extractEventAssistantText(message: unknown): string {
 }
 
 function getLastAssistantMessage(
-  session: AgentSession,
+  session: AgentSession
 ): AssistantMessage | null {
   for (let i = session.state.messages.length - 1; i >= 0; i--) {
     const message = session.state.messages[i];
@@ -163,14 +164,14 @@ function getLastAssistantMessage(
 
 function buildSeedMessages(
   ctx: ExtensionContext,
-  thread: BtwDetails[],
-): Message[] {
-  const seed: Message[] = [];
+  thread: BtwDetails[]
+): AgentMessage[] {
+  const seed: AgentMessage[] = [];
 
   try {
     const contextMessages = buildSessionContext(
       ctx.sessionManager.getEntries(),
-      ctx.sessionManager.getLeafId(),
+      ctx.sessionManager.getLeafId()
     ).messages;
     seed.push(...contextMessages);
   } catch {
@@ -182,7 +183,7 @@ function buildSeedMessages(
       {
         role: "user",
         content: [{ type: "text", text: item.question }],
-        timestamp: item.timestamp,
+        timestamp: item.timestamp
       },
       {
         role: "assistant",
@@ -196,11 +197,11 @@ function buildSeedMessages(
           cacheRead: 0,
           cacheWrite: 0,
           totalTokens: 0,
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
         },
         stopReason: "stop",
-        timestamp: item.timestamp,
-      },
+        timestamp: item.timestamp
+      }
     );
   }
 
@@ -211,7 +212,7 @@ function formatThread(thread: BtwDetails[]): string {
   return thread
     .map(
       (item) =>
-        `User: ${item.question.trim()}\nAssistant: ${item.answer.trim()}`,
+        `User: ${item.question.trim()}\nAssistant: ${item.answer.trim()}`
     )
     .join("\n\n---\n\n");
 }
@@ -219,7 +220,7 @@ function formatThread(thread: BtwDetails[]): string {
 function notify(
   ctx: ExtensionContext | ExtensionCommandContext,
   message: string,
-  level: "info" | "warning" | "error",
+  level: "info" | "warning" | "error"
 ): void {
   if (ctx.hasUI) {
     ctx.ui.notify(message, level);
@@ -233,7 +234,7 @@ class BtwOverlay extends Container implements Focusable {
   private readonly keybindings: KeybindingsManager;
   private readonly getTranscript: (
     width: number,
-    theme: ExtensionContext["ui"]["theme"],
+    theme: ExtensionContext["ui"]["theme"]
   ) => string[];
   private readonly getStatus: () => string;
   private readonly onSubmitCallback: (value: string) => void;
@@ -255,11 +256,11 @@ class BtwOverlay extends Container implements Focusable {
     keybindings: KeybindingsManager,
     getTranscript: (
       width: number,
-      theme: ExtensionContext["ui"]["theme"],
+      theme: ExtensionContext["ui"]["theme"]
     ) => string[],
     getStatus: () => string,
     onSubmit: (value: string) => void,
-    onDismiss: () => void,
+    onDismiss: () => void
   ) {
     super();
     this.tui = tui;
@@ -308,7 +309,7 @@ class BtwOverlay extends Container implements Focusable {
     const right = edge === "top" ? "┐" : "┘";
     return this.theme.fg(
       "borderMuted",
-      `${left}${"─".repeat(innerWidth)}${right}`,
+      `${left}${"─".repeat(innerWidth)}${right}`
     );
   }
 
@@ -318,7 +319,7 @@ class BtwOverlay extends Container implements Focusable {
     const terminalRows = process.stdout.rows ?? 30;
     const dialogHeight = Math.max(
       16,
-      Math.min(30, Math.floor(terminalRows * 0.75)),
+      Math.min(30, Math.floor(terminalRows * 0.75))
     );
     const chromeHeight = 7;
     const transcriptHeight = Math.max(6, dialogHeight - chromeHeight);
@@ -328,7 +329,7 @@ class BtwOverlay extends Container implements Focusable {
     const visibleTranscript = transcript.slice(-transcriptHeight);
     const transcriptPadding = Math.max(
       0,
-      transcriptHeight - visibleTranscript.length,
+      transcriptHeight - visibleTranscript.length
     );
 
     const status = this.getStatus();
@@ -342,13 +343,13 @@ class BtwOverlay extends Container implements Focusable {
       this.borderLine(innerWidth, "top"),
       this.frameLine(
         this.theme.fg("accent", this.theme.bold(" BTW side chat ")),
-        innerWidth,
+        innerWidth
       ),
       this.frameLine(
         this.theme.fg("dim", "Separate side conversation. Esc closes."),
-        innerWidth,
+        innerWidth
       ),
-      this.theme.fg("borderMuted", `├${"─".repeat(innerWidth)}┤`),
+      this.theme.fg("borderMuted", `├${"─".repeat(innerWidth)}┤`)
     ];
 
     for (const line of visibleTranscript) {
@@ -361,13 +362,13 @@ class BtwOverlay extends Container implements Focusable {
     lines.push(this.theme.fg("borderMuted", `├${"─".repeat(innerWidth)}┤`));
     lines.push(this.frameLine(this.theme.fg("warning", status), innerWidth));
     lines.push(
-      `${this.theme.fg("borderMuted", "│")}${inputLine}${this.theme.fg("borderMuted", "│")}`,
+      `${this.theme.fg("borderMuted", "│")}${inputLine}${this.theme.fg("borderMuted", "│")}`
     );
     lines.push(
       this.frameLine(
         this.theme.fg("dim", "Enter submit · Esc close"),
-        innerWidth,
-      ),
+        innerWidth
+      )
     );
     lines.push(this.borderLine(innerWidth, "bottom"));
 
@@ -437,7 +438,7 @@ export default function (pi: ExtensionAPI) {
   function renderToolCallLines(
     toolCalls: ToolCallInfo[],
     theme: ExtensionContext["ui"]["theme"],
-    width: number,
+    width: number
   ): string[] {
     const lines: string[] = [];
     for (const tc of toolCalls) {
@@ -459,7 +460,7 @@ export default function (pi: ExtensionAPI) {
 
   function getTranscriptLines(
     width: number,
-    theme: ExtensionContext["ui"]["theme"],
+    theme: ExtensionContext["ui"]["theme"]
   ): string[] {
     try {
       return getTranscriptLinesInner(width, theme);
@@ -467,15 +468,15 @@ export default function (pi: ExtensionAPI) {
       return [
         theme.fg(
           "error",
-          `Render error: ${error instanceof Error ? error.message : String(error)}`,
-        ),
+          `Render error: ${error instanceof Error ? error.message : String(error)}`
+        )
       ];
     }
   }
 
   function getTranscriptLinesInner(
     width: number,
-    theme: ExtensionContext["ui"]["theme"],
+    theme: ExtensionContext["ui"]["theme"]
   ): string[] {
     if (
       thread.length === 0 &&
@@ -492,7 +493,7 @@ export default function (pi: ExtensionAPI) {
       const userText = item.question.trim().split("\n")[0];
       lines.push(
         theme.fg("accent", theme.bold("You: ")) +
-          truncateToWidth(userText, width - 5, "…"),
+          truncateToWidth(userText, width - 5, "…")
       );
       lines.push("");
 
@@ -506,7 +507,7 @@ export default function (pi: ExtensionAPI) {
       const userText = pendingQuestion.trim().split("\n")[0];
       lines.push(
         theme.fg("accent", theme.bold("You: ")) +
-          truncateToWidth(userText, width - 5, "…"),
+          truncateToWidth(userText, width - 5, "…")
       );
 
       // Show tool calls inline
@@ -598,7 +599,7 @@ export default function (pi: ExtensionAPI) {
 
   async function resetThread(
     _ctx: ExtensionContext | ExtensionCommandContext,
-    persist = true,
+    persist = true
   ): Promise<void> {
     thread = [];
     pendingQuestion = null;
@@ -650,7 +651,7 @@ export default function (pi: ExtensionAPI) {
   }
 
   async function createSideSession(
-    ctx: ExtensionCommandContext,
+    ctx: ExtensionCommandContext
   ): Promise<SideSessionRuntime | null> {
     if (!ctx.model) {
       return null;
@@ -661,14 +662,13 @@ export default function (pi: ExtensionAPI) {
       model: ctx.model,
       modelRegistry: ctx.modelRegistry as AgentSession["modelRegistry"],
       thinkingLevel: pi.getThinkingLevel() as SessionThinkingLevel,
-      tools: codingTools,
-      resourceLoader: createBtwResourceLoader(ctx),
+      customTools: createCodingTools(ctx.cwd) as ToolDefinition[],
+      resourceLoader: createBtwResourceLoader(ctx)
     });
 
     const seedMessages = buildSeedMessages(ctx, thread);
     if (seedMessages.length > 0) {
-      session.agent.state.messages =
-        seedMessages as typeof session.state.messages;
+      session.agent.state.messages = seedMessages;
     }
 
     const unsubscribe = session.subscribe((event: AgentSessionEvent) => {
@@ -689,7 +689,7 @@ export default function (pi: ExtensionAPI) {
             event.type === "message_end"
               ? "Finalizing side response..."
               : "Streaming side response...",
-            true,
+            true
           );
           return;
         }
@@ -702,9 +702,9 @@ export default function (pi: ExtensionAPI) {
               toolName,
               args: formatToolArgs(
                 toolName,
-                (event as { args?: unknown }).args,
+                (event as { args?: unknown }).args
               ),
-              status: "running",
+              status: "running"
             });
           } catch {
             // Ignore tool tracking failures
@@ -716,7 +716,7 @@ export default function (pi: ExtensionAPI) {
           const endToolName =
             (event as { toolName?: string }).toolName ?? "unknown";
           const tc = pendingToolCalls.find(
-            (t) => t.toolName === endToolName && t.status === "running",
+            (t) => t.toolName === endToolName && t.status === "running"
           );
           if (tc) {
             tc.status = (event as { isError?: boolean }).isError
@@ -738,12 +738,12 @@ export default function (pi: ExtensionAPI) {
     return {
       session,
       modelKey: getModelKey(ctx),
-      unsubscribe,
+      unsubscribe
     };
   }
 
   async function ensureSideSession(
-    ctx: ExtensionCommandContext,
+    ctx: ExtensionCommandContext
   ): Promise<SideSessionRuntime | null> {
     if (!ctx.model) {
       return null;
@@ -760,7 +760,7 @@ export default function (pi: ExtensionAPI) {
   }
 
   async function ensureOverlay(
-    ctx: ExtensionCommandContext | ExtensionContext,
+    ctx: ExtensionCommandContext | ExtensionContext
   ): Promise<void> {
     if (!ctx.hasUI) {
       return;
@@ -804,7 +804,7 @@ export default function (pi: ExtensionAPI) {
             },
             () => {
               void closeOverlayFlow(ctx);
-            },
+            }
           );
 
           overlay.focused = true;
@@ -832,7 +832,7 @@ export default function (pi: ExtensionAPI) {
             minWidth: 72,
             maxHeight: "78%",
             anchor: "top-center",
-            margin: { top: 1, left: 2, right: 2 },
+            margin: { top: 1, left: 2, right: 2 }
           },
           onHandle: (handle) => {
             runtime.handle = handle;
@@ -840,8 +840,8 @@ export default function (pi: ExtensionAPI) {
             if (runtime.closed) {
               closeRuntime();
             }
-          },
-        },
+          }
+        }
       )
       .catch((error) => {
         if (overlayRuntime === runtime) {
@@ -850,14 +850,14 @@ export default function (pi: ExtensionAPI) {
         notify(
           ctx,
           error instanceof Error ? error.message : String(error),
-          "error",
+          "error"
         );
       });
   }
 
   async function summarizeThread(
     ctx: ExtensionContext,
-    items: BtwDetails[],
+    items: BtwDetails[]
   ): Promise<string> {
     const model = ctx.model;
     if (!model) {
@@ -867,7 +867,7 @@ export default function (pi: ExtensionAPI) {
     const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
     if (!auth.ok || !auth.apiKey) {
       throw new Error(
-        `No credentials available for ${model.provider}/${model.id}.`,
+        `No credentials available for ${model.provider}/${model.id}.`
       );
     }
 
@@ -877,7 +877,7 @@ export default function (pi: ExtensionAPI) {
       modelRegistry: ctx.modelRegistry as AgentSession["modelRegistry"],
       thinkingLevel: "off",
       tools: [],
-      resourceLoader: createBtwResourceLoader(ctx, [BTW_SUMMARY_PROMPT]),
+      resourceLoader: createBtwResourceLoader(ctx, [BTW_SUMMARY_PROMPT])
     });
 
     try {
@@ -905,7 +905,7 @@ export default function (pi: ExtensionAPI) {
   }
 
   async function injectSummaryIntoMain(
-    ctx: ExtensionContext | ExtensionCommandContext,
+    ctx: ExtensionContext | ExtensionCommandContext
   ): Promise<void> {
     if (thread.length === 0) {
       notify(ctx, "No BTW thread to summarize.", "warning");
@@ -928,13 +928,13 @@ export default function (pi: ExtensionAPI) {
       notify(
         ctx,
         error instanceof Error ? error.message : String(error),
-        "error",
+        "error"
       );
     }
   }
 
   async function closeOverlayFlow(
-    ctx: ExtensionContext | ExtensionCommandContext,
+    ctx: ExtensionContext | ExtensionCommandContext
   ): Promise<void> {
     dismissOverlay();
     if (!ctx.hasUI) {
@@ -947,7 +947,7 @@ export default function (pi: ExtensionAPI) {
 
     const choice = await ctx.ui.select("Close BTW:", [
       "Keep side thread",
-      "Inject summary into main chat",
+      "Inject summary into main chat"
     ]);
     if (choice === "Inject summary into main chat") {
       await injectSummaryIntoMain(ctx);
@@ -956,7 +956,7 @@ export default function (pi: ExtensionAPI) {
 
   async function runBtwPrompt(
     ctx: ExtensionCommandContext,
-    question: string,
+    question: string
   ): Promise<void> {
     const model = ctx.model;
     if (!model) {
@@ -1014,7 +1014,7 @@ export default function (pi: ExtensionAPI) {
         provider: model.provider,
         model: model.id,
         thinkingLevel: pi.getThinkingLevel() as SessionThinkingLevel,
-        usage: response.usage,
+        usage: response.usage
       };
       thread.push(details);
       pi.appendEntry(BTW_ENTRY_TYPE, details);
@@ -1036,7 +1036,7 @@ export default function (pi: ExtensionAPI) {
 
   async function submitFromOverlay(
     ctx: ExtensionContext | ExtensionCommandContext,
-    rawValue: string,
+    rawValue: string
   ): Promise<void> {
     const question = rawValue.trim();
     if (!question) {
@@ -1047,7 +1047,7 @@ export default function (pi: ExtensionAPI) {
     setOverlayDraft("");
     if (!("waitForIdle" in ctx)) {
       setOverlayStatus(
-        "BTW submit requires command context. Re-open with /btw.",
+        "BTW submit requires command context. Re-open with /btw."
       );
       return;
     }
@@ -1065,7 +1065,7 @@ export default function (pi: ExtensionAPI) {
         if (thread.length > 0 && ctx.hasUI) {
           const choice = await ctx.ui.select("BTW side chat:", [
             "Continue previous conversation",
-            "Start fresh",
+            "Start fresh"
           ]);
           if (choice === "Continue previous conversation") {
             // Dispose session so it's recreated with fresh main context on next submit
@@ -1088,7 +1088,7 @@ export default function (pi: ExtensionAPI) {
 
       await ensureOverlay(ctx);
       await runBtwPrompt(ctx, question);
-    },
+    }
   });
 
   pi.on("session_start", async (_event, ctx) => {
