@@ -1,29 +1,27 @@
 {
-  "lastChangelogVersion": "0.67.68",
+  "lastChangelogVersion": "0.68.0",
   "theme": "dark",
-  "defaultProvider": "github-copilot",
-  "defaultModel": "gpt-5-mini",
+  "defaultProvider": "llama-cpp",
+  "defaultModel": "qwen3.6-35B",
   "defaultThinkingLevel": "medium",
   "hideThinkingBlock": false,
   "enabledModels": [
-    "github-copilot/claude-haiku-4.5",
+    "llama-cpp/qwen3.6-35B",
+    "llama-cpp/gemma-4-26B",
+    "openrouter/anthropic/claude-opus-4.6",
+    "openrouter/anthropic/claude-sonnet-4.6",
+    "openrouter/anthropic/claude-haiku-4.5",
     "github-copilot/claude-opus-4.6",
     "github-copilot/claude-sonnet-4.6",
-    "openrouter/anthropic/claude-sonnet-4.6",
-    "openrouter/anthropic/claude-opus-4.6",
-    "openrouter/anthropic/claude-haiku-4.5",
-    "ollama/gemma4:31b",
-    "ollama/gemma4:26b",
-    "openrouter/anthropic/claude-opus-4.7",
+    "github-copilot/claude-haiku-4.5",
+    "github-copilot/gemini-3.1-pro-preview",
     "github-copilot/gemini-2.5-pro",
     "github-copilot/gemini-3-flash-preview",
-    "github-copilot/gemini-3.1-pro-preview",
+    "openrouter/google/gemini-3.1-pro-preview-customtools",
     "openrouter/google/gemini-3-flash-preview",
-    "openrouter/google/gemini-3.1-flash-lite-preview",
-    "openrouter/google/gemini-3.1-pro-preview",
-    "openrouter/google/gemini-3.1-pro-preview-customtools"
+    "openrouter/google/gemini-3.1-flash-lite-preview"
   ],
   "packages": [],
-  "enableInstallTelemetry": false
+  "enableInstallTelemetry": false,
+  "editorPaddingX": 0
 }
-

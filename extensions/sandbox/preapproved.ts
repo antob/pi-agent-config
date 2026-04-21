@@ -11,6 +11,7 @@ const PRE_APPROVED_PATHS: string[] = [
   "**/node_modules/pi-monorepo/**",
   "**/node_modules/@mariozechner/pi-coding-agent/**",
   "/tmp/**",
+  "~/.pi/agent/**"
 ];
 
 /**
