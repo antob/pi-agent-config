@@ -27,6 +27,8 @@ The script handles critical setup that raw git commands don't:
 2. Ensures `.worktrees` is in `.gitignore`
 3. Creates consistent directory structure
 
+**How to find the manager script:*** The script is in the skill's scripts folder.
+
 ```bash
 # ✅ CORRECT - Always use the script
 bash ./scripts/worktree-manager.sh create feature-name
@@ -34,6 +36,10 @@ bash ./scripts/worktree-manager.sh create feature-name
 # ❌ WRONG - Never do this directly
 git worktree add .worktrees/feature-name -b feature-name main
 ```
+
+**Always ask the user what to do when the script is waiting for interactive confirmation.**
+
+**Always inform the user if the script fails. Then ask on how to proceed. Do NOT remove any branches without asking for user approval.**
 
 ## When to Use This Skill
 
