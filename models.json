@@ -38,7 +38,11 @@
       "apiKey": "none",
       "models": [
         {
-          "id": "qwen3.6-35B",
+          "id": "qwen3.6-35B-Q8",
+          "contextWindow": 262144
+        },
+        {
+          "id": "qwen3.6-35B-Q4",
           "contextWindow": 262144
         },
         {
@@ -46,6 +50,18 @@
           "contextWindow": 262144
         }
       ]
+    },
+    "openrouter": {
+      "modelOverrides": {
+        "moonshotai/kimi-k2.6": {
+          "cost": {
+            "input": 0.95,
+            "output": 4,
+            "cacheRead": 0.16,
+            "cacheWrite": 0
+          }
+        }
+      }
     }
   }
 }
