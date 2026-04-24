@@ -37,7 +37,7 @@ const DESTRUCTIVE_PATTERNS = [
   /\bshutdown\b/i,
   /\bsystemctl\s+(start|stop|restart|enable|disable)/i,
   /\bservice\s+\S+\s+(start|stop|restart)/i,
-  /\b(vim?|nano|emacs|code|subl)\b/i,
+  /\b(vim?|nano|emacs|code|subl)\b/i
 ];
 
 // Safe read-only commands allowed in plan mode
@@ -91,7 +91,7 @@ const SAFE_PATTERNS = [
   /^\s*rg\b/,
   /^\s*fd\b/,
   /^\s*bat\b/,
-  /^\s*exa\b/,
+  /^\s*eza\b/
 ];
 
 export function isSafeCommand(command: string): boolean {
@@ -112,7 +112,7 @@ export function cleanStepText(text: string): string {
     .replace(/`([^`]+)`/g, "$1") // Remove code
     .replace(
       /^(Use|Run|Execute|Create|Write|Read|Check|Verify|Update|Modify|Add|Remove|Delete|Install)\s+(the\s+)?/i,
-      "",
+      ""
     )
     .replace(/\s+/g, " ")
     .trim();
@@ -132,7 +132,7 @@ export function extractTodoItems(message: string): TodoItem[] {
   if (!headerMatch) return items;
 
   const planSection = message.slice(
-    message.indexOf(headerMatch[0]) + headerMatch[0].length,
+    message.indexOf(headerMatch[0]) + headerMatch[0].length
   );
   const numberedPattern = /^\s*(\d+)[.)]\s+\*{0,2}([^*\n]+)/gm;
 
