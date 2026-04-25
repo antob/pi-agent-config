@@ -4,7 +4,7 @@
  * Custom interactive TUI for answering questions.
  *
  * Demonstrates the "prompt generator" pattern with custom TUI:
- * 1. /answer command gets the last assistant message
+ * 1. /qna command gets the last assistant message
  * 2. Shows a spinner while extracting questions as structured JSON
  * 3. Presents an interactive TUI to navigate and answer questions
  * 4. Submits the compiled answers when done
@@ -14,11 +14,11 @@ import {
   complete,
   type Model,
   type Api,
-  type UserMessage,
+  type UserMessage
 } from "@mariozechner/pi-ai";
 import type {
   ExtensionAPI,
-  ExtensionContext,
+  ExtensionContext
 } from "@mariozechner/pi-coding-agent";
 import { BorderedLoader } from "@mariozechner/pi-coding-agent";
 import {
@@ -30,7 +30,7 @@ import {
   truncateToWidth,
   type TUI,
   visibleWidth,
-  wrapTextWithAnsi,
+  wrapTextWithAnsi
 } from "@mariozechner/pi-tui";
 
 // Structured output format for question extraction
@@ -86,12 +86,12 @@ async function selectExtractionModel(
   modelRegistry: {
     find: (provider: string, modelId: string) => Model<Api> | undefined;
     getApiKeyForProvider: (provider: string) => Promise<string | undefined>;
-  },
+  }
 ): Promise<Model<Api>> {
   const codexModel = modelRegistry.find("openai-codex", CODEX_MODEL_ID);
   if (codexModel) {
     const apiKey = await modelRegistry.getApiKeyForProvider(
-      codexModel.provider,
+      codexModel.provider
     );
     if (apiKey) {
       return codexModel;
@@ -162,7 +162,7 @@ class QnAComponent implements Component {
   constructor(
     questions: ExtractedQuestion[],
     tui: TUI,
-    onDone: (result: string | null) => void,
+    onDone: (result: string | null) => void
   ) {
     this.questions = questions;
     this.answers = questions.map(() => "");
@@ -177,8 +177,8 @@ class QnAComponent implements Component {
         selectedPrefix: this.cyan,
         description: this.cyan,
         scrollInfo: this.cyan,
-        noMatch: this.cyan,
-      },
+        noMatch: this.cyan
+      }
     };
 
     this.editor = new Editor(tui, editorTheme);
@@ -405,15 +405,15 @@ class QnAComponent implements Component {
     // Confirmation dialog or footer with controls
     if (this.showingConfirmation) {
       lines.push(
-        padToWidth(this.dim("├" + horizontalLine(boxWidth - 2) + "┤")),
+        padToWidth(this.dim("├" + horizontalLine(boxWidth - 2) + "┤"))
       );
       const confirmMsg = `${this.yellow("Submit all answers?")} ${this.dim("(Enter/y to confirm, Esc/n to cancel)")}`;
       lines.push(
-        padToWidth(boxLine(truncateToWidth(confirmMsg, contentWidth))),
+        padToWidth(boxLine(truncateToWidth(confirmMsg, contentWidth)))
       );
     } else {
       lines.push(
-        padToWidth(this.dim("├" + horizontalLine(boxWidth - 2) + "┤")),
+        padToWidth(this.dim("├" + horizontalLine(boxWidth - 2) + "┤"))
       );
       const controls = `${this.dim("Tab/Enter")} next · ${this.dim("Shift+Tab")} prev · ${this.dim("Shift+Enter")} newline · ${this.dim("Esc")} cancel`;
       lines.push(padToWidth(boxLine(truncateToWidth(controls, contentWidth))));
@@ -429,7 +429,7 @@ class QnAComponent implements Component {
 export default function (pi: ExtensionAPI) {
   const answerHandler = async (ctx: ExtensionContext) => {
     if (!ctx.hasUI) {
-      ctx.ui.notify("answer requires interactive mode", "error");
+      ctx.ui.notify("qna requires interactive mode", "error");
       return;
     }
 
@@ -450,13 +450,13 @@ export default function (pi: ExtensionAPI) {
           if (msg.stopReason !== "stop") {
             ctx.ui.notify(
               `Last assistant message incomplete (${msg.stopReason})`,
-              "error",
+              "error"
             );
             return;
           }
           const textParts = msg.content
             .filter(
-              (c): c is { type: "text"; text: string } => c.type === "text",
+              (c): c is { type: "text"; text: string } => c.type === "text"
             )
             .map((c) => c.text);
           if (textParts.length > 0) {
@@ -475,7 +475,7 @@ export default function (pi: ExtensionAPI) {
     // Select the best model for extraction (prefer Codex mini, then haiku)
     const extractionModel = await selectExtractionModel(
       ctx.model,
-      ctx.modelRegistry,
+      ctx.modelRegistry
     );
 
     // Run extraction with loader UI
@@ -484,7 +484,7 @@ export default function (pi: ExtensionAPI) {
         const loader = new BorderedLoader(
           tui,
           theme,
-          `Extracting questions using ${extractionModel.id}...`,
+          `Extracting questions using ${extractionModel.id}...`
         );
         loader.onAbort = () => done(null);
 
@@ -495,13 +495,13 @@ export default function (pi: ExtensionAPI) {
           const userMessage: UserMessage = {
             role: "user",
             content: [{ type: "text", text: lastAssistantText! }],
-            timestamp: Date.now(),
+            timestamp: Date.now()
           };
 
           const response = await complete(
             extractionModel,
             { systemPrompt: SYSTEM_PROMPT, messages: [userMessage] },
-            { apiKey: auth.apiKey, signal: loader.signal },
+            { apiKey: auth.apiKey, signal: loader.signal }
           );
 
           if (response.stopReason === "aborted") {
@@ -510,7 +510,7 @@ export default function (pi: ExtensionAPI) {
 
           const responseText = response.content
             .filter(
-              (c): c is { type: "text"; text: string } => c.type === "text",
+              (c): c is { type: "text"; text: string } => c.type === "text"
             )
             .map((c) => c.text)
             .join("\n");
@@ -523,7 +523,7 @@ export default function (pi: ExtensionAPI) {
           .catch(() => done(null));
 
         return loader;
-      },
+      }
     );
 
     if (extractionResult === null) {
@@ -540,7 +540,7 @@ export default function (pi: ExtensionAPI) {
     const answersResult = await ctx.ui.custom<string | null>(
       (tui, _theme, _kb, done) => {
         return new QnAComponent(extractionResult.questions, tui, done);
-      },
+      }
     );
 
     if (answersResult === null) {
@@ -554,20 +554,20 @@ export default function (pi: ExtensionAPI) {
         customType: "answers",
         content:
           "I answered your questions in the following way:\n\n" + answersResult,
-        display: true,
+        display: true
       },
-      { triggerTurn: true },
+      { triggerTurn: true }
     );
   };
 
-  pi.registerCommand("answer", {
+  pi.registerCommand("qna", {
     description:
       "Extract questions from last assistant message into interactive Q&A",
-    handler: (_args, ctx) => answerHandler(ctx),
+    handler: (_args, ctx) => answerHandler(ctx)
   });
 
   pi.registerShortcut("ctrl+.", {
     description: "Extract and answer questions",
-    handler: answerHandler,
+    handler: answerHandler
   });
 }
