@@ -38,16 +38,14 @@
       "apiKey": "none",
       "models": [
         {
-          "id": "qwen3.6-35B-Q8",
-          "contextWindow": 262144
-        },
-        {
-          "id": "qwen3.6-35B-Q4",
-          "contextWindow": 262144
+          "id": "qwen3.6-35B",
+          "contextWindow": 262144,
+          "input": ["text", "image"]
         },
         {
           "id": "gemma-4-26B",
-          "contextWindow": 262144
+          "contextWindow": 262144,
+          "input": ["text", "image"]
         }
       ]
     },
