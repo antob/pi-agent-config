@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { fetch } from "wreq-js";
+
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 const args = process.argv.slice(2);
@@ -11,7 +13,10 @@ if (!url) {
   process.exit(1);
 }
 
-const res = await fetch(url);
+const res = await fetch(url, {
+  browser: "chrome_142",
+  os: "windows"
+});
 const html = await res.text();
 
 if (raw) {

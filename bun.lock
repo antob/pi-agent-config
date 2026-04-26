@@ -5,15 +5,16 @@
     "": {
       "name": "pi-agent-config",
       "dependencies": {
-        "@mariozechner/pi-ai": "latest",
-        "@mariozechner/pi-coding-agent": "latest",
-        "@mariozechner/pi-tui": "latest",
-        "diff": "latest",
-        "micromatch": "latest",
-        "typescript": "latest",
+        "@mariozechner/pi-ai": "^0.70.2",
+        "@mariozechner/pi-coding-agent": "^0.70.2",
+        "@mariozechner/pi-tui": "^0.70.2",
+        "diff": "^9.0.0",
+        "micromatch": "^4.0.8",
+        "typescript": "^6.0.3",
+        "wreq-js": "^2.3.0",
       },
       "devDependencies": {
-        "@types/micromatch": "latest",
+        "@types/micromatch": "^4.0.10",
       },
     },
   },
@@ -503,6 +504,8 @@
     "wrap-ansi": ["wrap-ansi@7.0.0", "", { "dependencies": { "ansi-styles": "^4.0.0", "string-width": "^4.1.0", "strip-ansi": "^6.0.0" } }, "sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q=="],
 
     "wrappy": ["wrappy@1.0.2", "", {}, "sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ=="],
+
+    "wreq-js": ["wreq-js@2.3.0", "", { "os": [ "linux", "win32", "darwin", ], "cpu": [ "x64", "arm64", ] }, "sha512-jROBpTUhVH40qG+cAvBhdduKPGDSx55jK1dIDmVuu29sux9i8KY0u0wb5tHkMzXKDy9hrfHP+bpvaSq25rGwEA=="],
 
     "ws": ["ws@8.20.0", "", { "peerDependencies": { "bufferutil": "^4.0.1", "utf-8-validate": ">=5.0.2" }, "optionalPeers": ["bufferutil", "utf-8-validate"] }, "sha512-sAt8BhgNbzCtgGbt2OxmpuryO63ZoDk/sqaB/znQm94T4fCEsy/yV+7CdC1kJhOU9lboAEU7R3kquuycDoibVA=="],
 

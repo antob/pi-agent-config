@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { fetch } from "wreq-js";
+
 const args = process.argv.slice(2);
 let n = 5,
   query;
@@ -20,8 +22,9 @@ if (!query) {
 const res = await fetch(
   `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`,
   {
-    headers: { "User-Agent": "Mozilla/5.0" },
-  },
+    browser: "chrome_142",
+    os: "windows"
+  }
 );
 const html = await res.text();
 
@@ -34,7 +37,7 @@ while ((m = blockRe.exec(html)) && results.length < n) {
     m[1]
       .replace(/^\/\/duckduckgo\.com\/l\/\?uddg=/, "")
       .replace(/&amp;rut=.*$/, "")
-      .replace(/&rut=.*$/, ""),
+      .replace(/&rut=.*$/, "")
   );
   const title = m[2].replace(/<[^>]*>/g, "").trim();
   const snippet = m[3].replace(/<[^>]*>/g, "").trim();
@@ -45,6 +48,6 @@ if (!results.length) {
   console.log("No results found.");
 } else {
   results.forEach((r, i) =>
-    console.log(`${i + 1}. ${r.title}\n   ${r.url}\n   ${r.snippet}\n`),
+    console.log(`${i + 1}. ${r.title}\n   ${r.url}\n   ${r.snippet}\n`)
   );
 }
