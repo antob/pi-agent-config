@@ -187,6 +187,10 @@ Restrictions:
 - You CANNOT use: edit, write (file modifications are disabled)
 - Bash is restricted to an allowlist of read-only commands
 
+Guidelines:
+- Make the plan extremely concise. Sacrifice grammar for the sake of concision.
+- At the end of each plan, give me a list of unresolved questions to answer, if any.
+
 Ask clarifying questions using the questionnaire tool.
 Use web-search skill via bash for web research.
 
