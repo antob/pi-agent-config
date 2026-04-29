@@ -1,8 +1,8 @@
 {
   "lastChangelogVersion": "0.70.6",
   "theme": "dark",
-  "defaultProvider": "llama-cpp",
-  "defaultModel": "qwen3.6-35B",
+  "defaultProvider": "ollama",
+  "defaultModel": "qwen3.6:35b",
   "defaultThinkingLevel": "medium",
   "hideThinkingBlock": false,
   "enabledModels": [
@@ -20,9 +20,16 @@
     "openrouter/google/gemini-3.1-pro-preview-customtools",
     "openrouter/google/gemini-3-flash-preview",
     "openrouter/google/gemini-3.1-flash-lite-preview",
-    "openrouter/moonshotai/kimi-k2.6"
+    "openrouter/moonshotai/kimi-k2.6",
+    "openrouter/deepseek/deepseek-v4-flash",
+    "openrouter/deepseek/deepseek-v4-pro",
+    "github-copilot/gpt-5-mini",
+    "ollama/qwen3.6:35b"
   ],
-  "packages": [],
+  "packages": [
+    "https://github.com/Kausik-A/pi-llm-wiki"
+  ],
   "enableInstallTelemetry": false,
-  "editorPaddingX": 0
+  "editorPaddingX": 0,
+  "quietStartup": false
 }
