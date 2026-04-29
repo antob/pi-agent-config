@@ -10,25 +10,17 @@
       },
       "models": [
         {
-          "id": "gemma4:31b",
-          "contextWindow": 262144,
-          "input": ["text", "image"],
-          "reasoning": true
-        },
-        {
           "id": "gemma4:26b",
-          "contextWindow": 262144,
           "input": ["text", "image"],
+          "contextWindow": 262144,
           "reasoning": true
         },
         {
-          "id": "qwen3.6",
-          "name": "Qwen3.6-35B-A3B",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 131072,
+          "id": "qwen3.6:35b",
+          "input": ["text", "image"],
+          "contextWindow": 262144,
           "maxTokens": 8192,
-          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
+          "reasoning": true
         }
       ]
     },
