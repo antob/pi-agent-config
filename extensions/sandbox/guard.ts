@@ -4,18 +4,22 @@ import { isInsideBoundary } from "./containment.js";
 import { isPreApproved } from "./preapproved.js";
 import { state } from "./state.js";
 
-/** Tools that take a `path` parameter and touch the filesystem */
-const FILE_TOOLS = ["read", "write", "edit", "grep", "find", "ls"] as const;
+/** Write tools — guarded outside the boundary when state.blockWrites is true */
+const WRITE_TOOLS = new Set(["write", "edit"]);
+
+/** Read tools — only guarded when state.blockReads is true */
+const READ_TOOLS = new Set(["read", "grep", "find", "ls"]);
 
 /**
  * Extract the path from a file tool's input.
  * All built-in file tools use `path` as the parameter name.
+ * Returns null if the tool is not a guarded tool.
  */
 function extractPath(
   toolName: string,
   input: Record<string, any>,
 ): string | null {
-  if (!FILE_TOOLS.includes(toolName as any)) return null;
+  if (!WRITE_TOOLS.has(toolName) && !READ_TOOLS.has(toolName)) return null;
   const p = input?.path;
   return typeof p === "string" ? p : null;
 }
@@ -27,6 +31,15 @@ export function registerGuard(pi: ExtensionAPI) {
   pi.on("tool_call", async (event, ctx) => {
     // Skip if boundary not yet detected (shouldn't happen, but be safe)
     if (!state.boundary) return;
+
+    const isWrite = WRITE_TOOLS.has(event.toolName);
+    const isRead = READ_TOOLS.has(event.toolName);
+
+    // Read tools are only guarded when blockReads is enabled
+    if (isRead && !state.blockReads) return;
+
+    // Write tools are only guarded when blockWrites is enabled
+    if (isWrite && !state.blockWrites) return;
 
     const targetPath = extractPath(
       event.toolName,
@@ -44,8 +57,9 @@ export function registerGuard(pi: ExtensionAPI) {
     // Check pre-approved paths
     if (isPreApproved(absolutePath)) return; // Hard-coded pre-approval
 
-    // Check approval store
-    if (state.approvals.isApproved(absolutePath)) return; // Previously approved
+    // Check the appropriate approval store
+    const approvals = isWrite ? state.writeApprovals : state.readApprovals;
+    if (approvals.isApproved(absolutePath)) return; // Previously approved
 
     // Outside boundary and not approved — ask the user
     const allowed = await ctx.ui.confirm(
@@ -54,8 +68,8 @@ export function registerGuard(pi: ExtensionAPI) {
     );
 
     if (allowed) {
-      // Remember the directory for this session
-      state.approvals.approve(absolutePath);
+      // Remember the directory for this session (in the appropriate store)
+      approvals.approve(absolutePath);
       return; // Allow
     }
 

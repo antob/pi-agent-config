@@ -52,11 +52,17 @@ async function initBoundary(pi: ExtensionAPI, ctx: any) {
   try {
     const { boundary } = await detectBoundary(pi, ctx.cwd);
     state.boundary = boundary;
-    state.approvals.clear();
+    state.blockReads = false;
+    state.blockWrites = true;
+    state.writeApprovals.clear();
+    state.readApprovals.clear();
   } catch (err) {
     // Last resort: use cwd as boundary
     state.boundary = ctx.cwd;
-    state.approvals.clear();
+    state.blockReads = false;
+    state.blockWrites = true;
+    state.writeApprovals.clear();
+    state.readApprovals.clear();
     ctx.ui.notify(
       `🔒 pi-sandbox: boundary set to ${ctx.cwd} (error fallback: ${err})`,
       "warning",
