@@ -122,7 +122,7 @@ async function pasteImage(
 }
 
 export default function (pi: ExtensionAPI) {
-  pi.registerShortcut("ctrl+v", {
+  pi.registerShortcut("alt+super+v", {
     description: "Paste clipboard image",
     handler: async (ctx) => pasteImage(pi, ctx)
   });
