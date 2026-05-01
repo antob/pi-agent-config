@@ -26,13 +26,9 @@
     "github-copilot/gpt-5-mini",
     "ollama/qwen3.6:35b"
   ],
-  "npmCommand": [
-    "bun"
-  ],
-  "packages": [
-    "https://github.com/Kausik-A/pi-llm-wiki"
-  ],
+  "npmCommand": ["bun"],
   "enableInstallTelemetry": false,
   "editorPaddingX": 0,
   "quietStartup": false
 }
+
