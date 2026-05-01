@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.70.6",
+  "lastChangelogVersion": "0.71.0",
   "theme": "dark",
   "defaultProvider": "ollama",
   "defaultModel": "qwen3.6:35b",
@@ -25,6 +25,9 @@
     "openrouter/deepseek/deepseek-v4-pro",
     "github-copilot/gpt-5-mini",
     "ollama/qwen3.6:35b"
+  ],
+  "npmCommand": [
+    "bun"
   ],
   "packages": [
     "https://github.com/Kausik-A/pi-llm-wiki"

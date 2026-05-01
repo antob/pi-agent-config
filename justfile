@@ -4,5 +4,7 @@ default:
 
 # Update PI
 update:
-    bun update -g @mariozechner/pi-coding-agent # Update globally installed PI
-    bun update --latest # Update locally installed dependencies
+    # Update globally installed PI
+    bun update -g --latest @mariozechner/pi-ai @mariozechner/pi-coding-agent @mariozechner/pi-tui
+    # Update locally installed dependencies
+    bun update --latest 
