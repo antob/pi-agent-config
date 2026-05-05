@@ -1,8 +1,8 @@
 {
-  "lastChangelogVersion": "0.71.0",
+  "lastChangelogVersion": "0.73.0",
   "theme": "dark",
-  "defaultProvider": "ollama",
-  "defaultModel": "qwen3.6:35b",
+  "defaultProvider": "github-copilot",
+  "defaultModel": "gpt-5-mini",
   "defaultThinkingLevel": "medium",
   "hideThinkingBlock": false,
   "enabledModels": [
@@ -26,9 +26,10 @@
     "github-copilot/gpt-5-mini",
     "ollama/qwen3.6:35b"
   ],
-  "npmCommand": ["bun"],
+  "npmCommand": [
+    "bun"
+  ],
   "enableInstallTelemetry": false,
   "editorPaddingX": 0,
   "quietStartup": false
 }
-
