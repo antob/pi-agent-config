@@ -3,3 +3,4 @@ sessions
 node_modules
 tmp
 .worktrees
+notify-on-stop.json
