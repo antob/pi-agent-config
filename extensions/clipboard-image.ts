@@ -13,7 +13,7 @@
  */
 import type {
   ExtensionAPI,
-  ExtensionContext
+  ExtensionContext,
 } from "@mariozechner/pi-coding-agent";
 import os from "node:os";
 import path from "node:path";
@@ -27,7 +27,7 @@ const SUPPORTED_TYPES = [
   "image/bmp",
   "image/x-bmp",
   "image/x-ms-bmp",
-  "image/x-ms-bitmap"
+  "image/x-ms-bitmap",
 ];
 const MAX_DIMENSION = 2000;
 const STATUS_KEY = "clipboard-image";
@@ -54,10 +54,10 @@ function outputPath(): string {
 
 async function exec(
   pi: ExtensionAPI,
-  cmd: string
+  cmd: string,
 ): Promise<{ code?: number; stdout: string; stderr: string }> {
   return pi.exec("bash", ["-lc", `set -o pipefail; ${cmd}`], {
-    timeout: 10000
+    timeout: 10000,
   }) as Promise<{
     code?: number;
     stdout: string;
@@ -69,7 +69,7 @@ async function captureWayland(pi: ExtensionAPI, out: string): Promise<void> {
   const listResult = await exec(pi, "wl-paste --list-types");
   if ((listResult.code ?? 0) !== 0) {
     throw new Error(
-      `wl-paste --list-types failed: ${listResult.stderr.trim() || "unknown error"}`
+      `wl-paste --list-types failed: ${listResult.stderr.trim() || "unknown error"}`,
     );
   }
 
@@ -80,17 +80,17 @@ async function captureWayland(pi: ExtensionAPI, out: string): Promise<void> {
   const imageType = pickImageType(types);
   if (!imageType) {
     throw new Error(
-      `No image in clipboard (types: ${types.slice(0, 8).join(", ") || "none"}).`
+      `No image in clipboard (types: ${types.slice(0, 8).join(", ") || "none"}).`,
     );
   }
 
   const result = await exec(
     pi,
-    `wl-paste --type ${shellQuote(imageType)} | convert - -resize '${MAX_DIMENSION}x${MAX_DIMENSION}>' -strip png:${shellQuote(out)}`
+    `wl-paste --type ${shellQuote(imageType)} | convert - -resize '${MAX_DIMENSION}x${MAX_DIMENSION}>' -strip png:${shellQuote(out)}`,
   );
   if ((result.code ?? 0) !== 0) {
     throw new Error(
-      `Clipboard capture failed: ${result.stderr.trim() || result.stdout.trim() || "unknown error"}`
+      `Clipboard capture failed: ${result.stderr.trim() || result.stdout.trim() || "unknown error"}`,
     );
   }
 }
@@ -104,7 +104,7 @@ function appendToEditor(ctx: ExtensionContext, ref: string): void {
 
 async function pasteImage(
   pi: ExtensionAPI,
-  ctx: ExtensionContext
+  ctx: ExtensionContext,
 ): Promise<void> {
   ctx.ui.setStatus(STATUS_KEY, "Reading clipboard image…");
 
@@ -122,13 +122,13 @@ async function pasteImage(
 }
 
 export default function (pi: ExtensionAPI) {
-  pi.registerShortcut("alt+super+v", {
+  pi.registerShortcut("ctrl+v", {
     description: "Paste clipboard image",
-    handler: async (ctx) => pasteImage(pi, ctx)
+    handler: async (ctx) => pasteImage(pi, ctx),
   });
 
   pi.registerCommand("paste-image", {
     description: "Paste clipboard image into prompt",
-    handler: async (_args, ctx) => pasteImage(pi, ctx)
+    handler: async (_args, ctx) => pasteImage(pi, ctx),
   });
 }
