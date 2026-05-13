@@ -65,14 +65,15 @@ export default function (pi: ExtensionAPI) {
 
     try {
       const result = await pi.exec("rtk", ["rewrite", command], {
-        timeout: 5000
+        timeout: 5000,
       });
       // exit 0 = rewrite found, auto-allow
       // exit 3 = rewrite found, ask-rule matched (treat same as 0 for pi)
       if (result.code === 0 || result.code === 3) {
         const rewritten = result.stdout.trim();
         if (rewritten && rewritten !== command) {
-          event.input.command = rewritten;
+          // See https://github.com/rtk-ai/rtk/issues/1566 for rationale on LC_ALL=C
+          event.input.command = `LC_ALL=C ${rewritten}`;
         }
       }
       // exit 1 = no RTK equivalent, pass through unchanged
@@ -109,7 +110,7 @@ export default function (pi: ExtensionAPI) {
           } else {
             ctx.ui.notify(
               `rtk gain failed (exit ${result.code})\n${result.stderr}`,
-              "error"
+              "error",
             );
           }
         } catch (err) {
@@ -128,9 +129,9 @@ export default function (pi: ExtensionAPI) {
         `Usage:`,
         `  /rtk on      Enable rewrites`,
         `  /rtk off     Disable rewrites`,
-        `  /rtk gain    Show token savings`
+        `  /rtk gain    Show token savings`,
       ];
       ctx.ui.notify(lines.join("\n"), "info");
-    }
+    },
   });
 }
