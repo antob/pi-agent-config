@@ -34,5 +34,5 @@
   ],
   "enableInstallTelemetry": false,
   "editorPaddingX": 0,
-  "quietStartup": false
+  "quietStartup": true
 }

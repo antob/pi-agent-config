@@ -16,18 +16,25 @@ import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, TextContent } from "@mariozechner/pi-ai";
 import type {
   ExtensionAPI,
-  ExtensionContext
+  ExtensionContext,
 } from "@mariozechner/pi-coding-agent";
-import { Key } from "@mariozechner/pi-tui";
 import {
   extractTodoItems,
   isSafeCommand,
   markCompletedSteps,
-  type TodoItem
+  type TodoItem,
 } from "./utils.js";
 
 // Tools
-const PLAN_MODE_TOOLS = ["read", "bash", "grep", "find", "ls", "questionnaire"];
+const PLAN_MODE_TOOLS = [
+  "read",
+  "bash",
+  "grep",
+  "find",
+  "ls",
+  "question",
+  "questionnaire",
+];
 const NORMAL_MODE_TOOLS = ["read", "bash", "edit", "write"];
 
 // Type guard for assistant messages
@@ -51,7 +58,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
   pi.registerFlag("plan", {
     description: "Start in plan mode (read-only exploration)",
     type: "boolean",
-    default: false
+    default: false,
   });
 
   function updateStatus(ctx: ExtensionContext): void {
@@ -60,7 +67,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       const completed = todoItems.filter((t) => t.completed).length;
       ctx.ui.setStatus(
         "plan-mode",
-        ctx.ui.theme.fg("accent", `📋 ${completed}/${todoItems.length}`)
+        ctx.ui.theme.fg("accent", `📋 ${completed}/${todoItems.length}`),
       );
     } else if (planModeEnabled) {
       ctx.ui.setStatus("plan-mode", ctx.ui.theme.fg("warning", "⏸ plan"));
@@ -104,13 +111,13 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     pi.appendEntry("plan-mode", {
       enabled: planModeEnabled,
       todos: todoItems,
-      executing: executionMode
+      executing: executionMode,
     });
   }
 
   pi.registerCommand("plan", {
     description: "Toggle plan mode (read-only exploration)",
-    handler: async (_args, ctx) => togglePlanMode(ctx)
+    handler: async (_args, ctx) => togglePlanMode(ctx),
   });
 
   pi.registerCommand("todos", {
@@ -122,11 +129,11 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       }
       const list = todoItems
         .map(
-          (item, i) => `${i + 1}. ${item.completed ? "✓" : "○"} ${item.text}`
+          (item, i) => `${i + 1}. ${item.completed ? "✓" : "○"} ${item.text}`,
         )
         .join("\n");
       ctx.ui.notify(`Plan Progress:\n${list}`, "info");
-    }
+    },
   });
 
   // Block destructive bash commands in plan mode
@@ -137,7 +144,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     if (!isSafeCommand(command)) {
       return {
         block: true,
-        reason: `Plan mode: command blocked (not allowlisted). Use /plan to disable plan mode first.\nCommand: ${command}`
+        reason: `Plan mode: command blocked (not allowlisted). Use /plan to disable plan mode first.\nCommand: ${command}`,
       };
     }
   });
@@ -160,11 +167,11 @@ export default function planModeExtension(pi: ExtensionAPI): void {
           return !content.some(
             (c) =>
               c.type === "text" &&
-              (c as TextContent).text?.includes("[PLAN MODE ACTIVE]")
+              (c as TextContent).text?.includes("[PLAN MODE ACTIVE]"),
           );
         }
         return true;
-      })
+      }),
     };
   });
 
@@ -197,8 +204,8 @@ Plan:
 ...
 
 Do NOT attempt to make changes - just describe what you would do.`,
-          display: false
-        }
+          display: false,
+        },
       };
     }
 
@@ -215,8 +222,8 @@ ${todoList}
 
 Execute each step in order.
 After completing a step, include a [DONE:n] tag in your response.`,
-          display: false
-        }
+          display: false,
+        },
       };
     }
   });
@@ -243,9 +250,9 @@ After completing a step, include a [DONE:n] tag in your response.`,
           {
             customType: "plan-complete",
             content: `**Plan Complete!** ✓\n\n${completedList}`,
-            display: true
+            display: true,
           },
-          { triggerTurn: false }
+          { triggerTurn: false },
         );
         executionMode = false;
         todoItems = [];
@@ -278,9 +285,9 @@ After completing a step, include a [DONE:n] tag in your response.`,
         {
           customType: "plan-todo-list",
           content: `**Plan Steps (${todoItems.length}):**\n\n${todoListText}`,
-          display: true
+          display: true,
         },
-        { triggerTurn: false }
+        { triggerTurn: false },
       );
     }
 
@@ -289,7 +296,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
         ? "Execute the plan (track progress)"
         : "Execute the plan",
       "Stay in plan mode",
-      "Refine the plan"
+      "Refine the plan",
     ]);
 
     if (choice?.startsWith("Execute")) {
@@ -306,9 +313,9 @@ After completing a step, include a [DONE:n] tag in your response.`,
         {
           customType: "plan-mode-execute",
           content: execMessage,
-          display: true
+          display: true,
         },
-        { triggerTurn: true }
+        { triggerTurn: true },
       );
     } else if (choice === "Refine the plan") {
       const refinement = await ctx.ui.editor("Refine the plan:", "");
@@ -330,7 +337,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
     const planModeEntry = entries
       .filter(
         (e: { type: string; customType?: string }) =>
-          e.type === "custom" && e.customType === "plan-mode"
+          e.type === "custom" && e.customType === "plan-mode",
       )
       .pop() as
       | { data?: { enabled: boolean; todos?: TodoItem[]; executing?: boolean } }
