@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.73.0",
+  "lastChangelogVersion": "0.75.5",
   "theme": "dark",
   "defaultProvider": "github-copilot",
   "defaultModel": "gpt-5-mini",
@@ -8,10 +8,7 @@
   "enabledModels": [
     "llama-cpp/qwen3.6-35B",
     "llama-cpp/gemma-4-26B",
-    "openrouter/anthropic/claude-opus-4.6",
-    "openrouter/anthropic/claude-sonnet-4.6",
     "openrouter/anthropic/claude-haiku-4.5",
-    "github-copilot/claude-opus-4.6",
     "github-copilot/claude-sonnet-4.6",
     "github-copilot/claude-haiku-4.5",
     "github-copilot/gemini-3.1-pro-preview",
@@ -24,7 +21,13 @@
     "openrouter/deepseek/deepseek-v4-flash",
     "openrouter/deepseek/deepseek-v4-pro",
     "github-copilot/gpt-5-mini",
-    "ollama/qwen3.6:35b"
+    "ollama/qwen3.6:35b",
+    "ollama/qwen3-coder-next:q4_K_M",
+    "anthropic/claude-opus-4-7",
+    "anthropic/claude-haiku-4-5",
+    "anthropic/claude-sonnet-4-6",
+    "github-copilot/claude-opus-4.7",
+    "openrouter/anthropic/claude-opus-4.7"
   ],
   "npmCommand": [
     "bun"
