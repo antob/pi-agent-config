@@ -172,8 +172,27 @@ export default function question(pi: ExtensionAPI) {
           const lines: string[] = [];
           const add = (s: string) => lines.push(truncateToWidth(s, width));
 
+          const addWrapped = (text: string, prefix: string = "", style: (s: string) => string = (s) => s) => {
+            const usable = width - prefix.length;
+            const words = text.split(" ");
+            let current = "";
+            for (const word of words) {
+              if (current.length === 0) {
+                current = word;
+              } else if (current.length + 1 + word.length <= usable) {
+                current += " " + word;
+              } else {
+                lines.push(truncateToWidth(prefix + style(current), width));
+                current = word;
+              }
+            }
+            if (current.length > 0) {
+              lines.push(truncateToWidth(prefix + style(current), width));
+            }
+          };
+
           add(theme.fg("accent", "─".repeat(width)));
-          add(theme.fg("text", ` ${params.question}`));
+          addWrapped(params.question, " ", (s) => theme.fg("text", s));
           lines.push("");
 
           for (let i = 0; i < allOptions.length; i++) {

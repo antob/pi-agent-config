@@ -11,7 +11,7 @@ Ask the questions one at a time, waiting for feedback on each question before co
 
 If a question can be answered by exploring the codebase, explore the codebase instead.
 
-Always use the `question` tool when asking me any questions.
+Always use the `questionnaire` tool when asking me any questions.
 
 </what-to-do>
 

@@ -309,6 +309,26 @@ export default function questionnaire(pi: ExtensionAPI) {
             // Helper to add truncated line
             const add = (s: string) => lines.push(truncateToWidth(s, width));
 
+            // Helper to word-wrap plain text into multiple lines
+            const addWrapped = (text: string, prefix: string = "", style: (s: string) => string = (s) => s) => {
+              const usable = width - prefix.length;
+              const words = text.split(" ");
+              let current = "";
+              for (const word of words) {
+                if (current.length === 0) {
+                  current = word;
+                } else if (current.length + 1 + word.length <= usable) {
+                  current += " " + word;
+                } else {
+                  lines.push(truncateToWidth(prefix + style(current), width));
+                  current = word;
+                }
+              }
+              if (current.length > 0) {
+                lines.push(truncateToWidth(prefix + style(current), width));
+              }
+            };
+
             add(theme.fg("accent", "─".repeat(width)));
 
             // Tab bar (multi-question only)
@@ -359,7 +379,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 
             // Content
             if (inputMode && q) {
-              add(theme.fg("text", ` ${q.prompt}`));
+              addWrapped(q.prompt, " ", (s) => theme.fg("text", s));
               lines.push("");
               // Show options for reference
               renderOptions();
@@ -393,7 +413,7 @@ export default function questionnaire(pi: ExtensionAPI) {
                 add(theme.fg("warning", ` Unanswered: ${missing}`));
               }
             } else if (q) {
-              add(theme.fg("text", ` ${q.prompt}`));
+              addWrapped(q.prompt, " ", (s) => theme.fg("text", s));
               lines.push("");
               renderOptions();
             }
