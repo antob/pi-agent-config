@@ -14,6 +14,12 @@
 - No flowery language, no "I'd be happy to", no "Great question!".
 - Be direct and technical.
 
+## Shell Gotchas
+
+- `pgrep`/`pkill` use extended regex (ERE) by default. Use `"ruby|rails|puma"`, never `"ruby\|rails\|puma"` (the backslash-pipe matches a literal `|`).
+- `grep` without `-E` uses basic regex (BRE), where `\|` is alternation. With `grep -E` or `egrep`, use plain `|`.
+- When in doubt about a regex flavour, prefer `-E` and plain `|`.
+
 ## Skills: How to Use Them
 
 Skills listed in `<available_skills>` below are NOT tools. They are not callable via `<invoke>`. They are instruction sets stored in files.
