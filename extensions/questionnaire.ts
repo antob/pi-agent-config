@@ -372,7 +372,7 @@ export default function questionnaire(pi: ExtensionAPI) {
                   add(prefix + theme.fg(color, `${i + 1}. ${opt.label}`));
                 }
                 if (opt.description) {
-                  add(`     ${theme.fg("muted", opt.description)}`);
+                  addWrapped(opt.description, "     ", (s) => theme.fg("muted", s));
                 }
               }
             }
