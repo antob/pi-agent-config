@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.78.0",
+  "lastChangelogVersion": "0.78.1",
   "theme": "dark",
   "defaultProvider": "github-copilot",
   "defaultModel": "gpt-5-mini",
@@ -26,9 +26,9 @@
     "openrouter/moonshotai/kimi-k2.6",
     "openrouter/deepseek/deepseek-v4-flash",
     "openrouter/deepseek/deepseek-v4-pro",
-    "anthropic/claude-opus-4-7",
     "anthropic/claude-sonnet-4-6",
-    "anthropic/claude-haiku-4-5"
+    "anthropic/claude-haiku-4-5",
+    "anthropic/claude-opus-4-8"
   ],
   "npmCommand": [
     "bun"
