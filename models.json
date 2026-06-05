@@ -32,11 +32,13 @@
         {
           "id": "qwen3.6-35B",
           "contextWindow": 262144,
+          "reasoning": true,
           "input": ["text", "image"]
         },
         {
           "id": "gemma-4-26B",
           "contextWindow": 262144,
+          "reasoning": true,
           "input": ["text", "image"]
         }
       ]
