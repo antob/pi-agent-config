@@ -1,6 +1,8 @@
 auth.json
+trust.json
 sessions
 node_modules
+npm
 tmp
 .worktrees
 notify-on-stop.json
