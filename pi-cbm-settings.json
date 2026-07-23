@@ -1,3 +1,4 @@
 {
-  "autoIndexNonGitDirectories": false
+  "autoIndexNonGitDirectories": false,
+  "showFooterStatus": false
 }

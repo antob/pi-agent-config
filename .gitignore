@@ -3,6 +3,7 @@ trust.json
 sessions
 node_modules
 npm
+git
 tmp
 .worktrees
 notify-on-stop.json
