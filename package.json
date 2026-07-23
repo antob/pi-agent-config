@@ -12,12 +12,12 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@earendil-works/pi-ai": "^0.79.0",
-    "@earendil-works/pi-coding-agent": "^0.79.0",
-    "@earendil-works/pi-tui": "^0.79.0",
+    "@earendil-works/pi-ai": "^0.81.1",
+    "@earendil-works/pi-coding-agent": "^0.81.1",
+    "@earendil-works/pi-tui": "^0.81.1",
     "diff": "^9.0.0",
     "micromatch": "^4.0.8",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "wreq-js": "^2.3.1"
   },
   "devDependencies": {
