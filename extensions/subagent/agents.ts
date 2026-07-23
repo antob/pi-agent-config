@@ -4,7 +4,11 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAgentDir, parseFrontmatter } from "@mariozechner/pi-coding-agent";
+import {
+  CONFIG_DIR_NAME,
+  getAgentDir,
+  parseFrontmatter,
+} from "@earendil-works/pi-coding-agent";
 
 export type AgentScope = "user" | "project" | "both";
 
@@ -25,7 +29,7 @@ export interface AgentDiscoveryResult {
 
 function loadAgentsFromDir(
   dir: string,
-  source: "user" | "project"
+  source: "user" | "project",
 ): AgentConfig[] {
   const agents: AgentConfig[] = [];
 
@@ -71,7 +75,7 @@ function loadAgentsFromDir(
       model: frontmatter.model,
       systemPrompt: body,
       source,
-      filePath
+      filePath,
     });
   }
 
@@ -89,7 +93,7 @@ function isDirectory(p: string): boolean {
 function findNearestProjectAgentsDir(cwd: string): string | null {
   let currentDir = cwd;
   while (true) {
-    const candidate = path.join(currentDir, ".pi", "agents");
+    const candidate = path.join(currentDir, CONFIG_DIR_NAME, "agents");
     if (isDirectory(candidate)) return candidate;
 
     const parentDir = path.dirname(currentDir);
@@ -100,7 +104,7 @@ function findNearestProjectAgentsDir(cwd: string): string | null {
 
 export function discoverAgents(
   cwd: string,
-  scope: AgentScope
+  scope: AgentScope,
 ): AgentDiscoveryResult {
   const userDir = path.join(getAgentDir(), "agents");
   const projectAgentsDir = findNearestProjectAgentsDir(cwd);
@@ -128,7 +132,7 @@ export function discoverAgents(
 
 export function formatAgentList(
   agents: AgentConfig[],
-  maxItems: number
+  maxItems: number,
 ): { text: string; remaining: number } {
   if (agents.length === 0) return { text: "none", remaining: 0 };
   const listed = agents.slice(0, maxItems);
@@ -137,6 +141,6 @@ export function formatAgentList(
     text: listed
       .map((a) => `${a.name} (${a.source}): ${a.description}`)
       .join("; "),
-    remaining
+    remaining,
   };
 }
