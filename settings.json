@@ -28,9 +28,13 @@
     "llama-cpp/ornith-1.0-35B",
     "ollama/robit/ornith-vision:35b"
   ],
-  "npmCommand": ["bun"],
+  "npmCommand": [
+    "bun"
+  ],
   "enableInstallTelemetry": false,
   "editorPaddingX": 0,
   "quietStartup": true,
-  "packages": ["https://github.com/antob/pi-cbm"]
+  "packages": [
+    "https://github.com/antob/pi-cbm"
+  ]
 }

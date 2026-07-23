@@ -300,9 +300,32 @@ function getPiInvocation(args: string[]): { command: string; args: string[] } {
 
 type OnUpdateCallback = (partial: AgentToolResult<SubagentDetails>) => void;
 
+function selectAgentModel(
+  configuredModel: string | undefined,
+  preferredProvider: string | undefined,
+): string | undefined {
+  const candidates = configuredModel
+    ?.split(",")
+    .map((candidate) => candidate.trim())
+    .filter(Boolean);
+
+  if (!candidates || candidates.length === 0) return undefined;
+  if (!preferredProvider) return candidates[0];
+
+  return (
+    candidates.find((candidate) => {
+      const separator = candidate.indexOf("/");
+      return (
+        separator > 0 && candidate.slice(0, separator) === preferredProvider
+      );
+    }) ?? candidates[0]
+  );
+}
+
 async function runSingleAgent(
   defaultCwd: string,
   agents: AgentConfig[],
+  preferredProvider: string | undefined,
   agentName: string,
   task: string,
   cwd: string | undefined,
@@ -335,8 +358,9 @@ async function runSingleAgent(
     };
   }
 
+  const selectedModel = selectAgentModel(agent.model, preferredProvider);
   const args: string[] = ["--mode", "json", "-p", "--no-session"];
-  if (agent.model) args.push("--model", agent.model);
+  if (selectedModel) args.push("--model", selectedModel);
   if (agent.tools && agent.tools.length > 0)
     args.push("--tools", agent.tools.join(","));
 
@@ -359,7 +383,7 @@ async function runSingleAgent(
       contextTokens: 0,
       turns: 0,
     },
-    model: agent.model,
+    model: selectedModel,
     step,
   };
 
@@ -558,6 +582,7 @@ export default function (pi: ExtensionAPI) {
 
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
       const agentScope: AgentScope = params.agentScope ?? "user";
+      const preferredProvider = ctx.model?.provider;
       const discovery = discoverAgents(ctx.cwd, agentScope);
       const agents = discovery.agents;
       const confirmProjectAgents = params.confirmProjectAgents ?? true;
@@ -657,6 +682,7 @@ export default function (pi: ExtensionAPI) {
           const result = await runSingleAgent(
             ctx.cwd,
             agents,
+            preferredProvider,
             step.agent,
             taskWithContext,
             step.cwd,
@@ -755,6 +781,7 @@ export default function (pi: ExtensionAPI) {
             const result = await runSingleAgent(
               ctx.cwd,
               agents,
+              preferredProvider,
               t.agent,
               t.task,
               t.cwd,
@@ -798,6 +825,7 @@ export default function (pi: ExtensionAPI) {
         const result = await runSingleAgent(
           ctx.cwd,
           agents,
+          preferredProvider,
           params.agent,
           params.task,
           params.cwd,

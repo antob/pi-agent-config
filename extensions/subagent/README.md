@@ -139,11 +139,15 @@ Agents are markdown files with YAML frontmatter:
 name: my-agent
 description: What this agent does
 tools: read, grep, find, ls
-model: claude-haiku-4-5
+model: openrouter/anthropic/claude-haiku-4.5, github-copilot/claude-haiku-4.5
 ---
 
 System prompt for the agent goes here.
 ```
+
+The optional `model` field accepts one or more comma-separated models. When multiple models are configured, the extension selects the first model whose provider exactly matches the parent session's active provider. Candidate order is preserved. If the parent has no active provider or no candidate matches it, the first model is used. A single model continues to work as before.
+
+For example, with the definition above, an OpenRouter parent selects `openrouter/anthropic/claude-haiku-4.5`, while a GitHub Copilot parent selects `github-copilot/claude-haiku-4.5`. Any other provider falls back to the first model.
 
 **Locations:**
 
