@@ -1,5 +1,6 @@
 auth.json
 trust.json
+models-store.json
 sessions
 node_modules
 npm

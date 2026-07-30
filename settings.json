@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.80.7",
+  "lastChangelogVersion": "0.82.1",
   "theme": "dark",
   "defaultProvider": "github-copilot",
   "defaultModel": "claude-sonnet-4.6",
@@ -7,26 +7,27 @@
   "hideThinkingBlock": false,
   "enabledModels": [
     "llama-cpp/qwen3.6-35B",
+    "llama-cpp/ornith-1.0-35B",
     "ollama/qwen3.6:35b",
+    "ollama/robit/ornith-vision:35b",
     "github-copilot/claude-sonnet-4.6",
     "github-copilot/claude-haiku-4.5",
     "github-copilot/gpt-5-mini",
     "github-copilot/gemini-3.1-pro-preview",
     "github-copilot/gemini-2.5-pro",
     "github-copilot/gemini-3-flash-preview",
-    "openrouter/anthropic/claude-opus-4.8",
+    "openrouter/anthropic/claude-opus-5",
     "openrouter/anthropic/claude-sonnet-5",
     "openrouter/anthropic/claude-haiku-4.5",
     "openrouter/google/gemini-3.1-pro-preview-customtools",
     "openrouter/google/gemini-3-flash-preview",
     "openrouter/google/gemini-3.1-flash-lite-preview",
+    "openrouter/moonshotai/kimi-k3",
     "openrouter/deepseek/deepseek-v4-pro",
     "openrouter/deepseek/deepseek-v4-flash",
-    "anthropic/claude-opus-4-8",
+    "anthropic/claude-opus-5",
     "anthropic/claude-sonnet-5",
-    "anthropic/claude-haiku-4-5",
-    "llama-cpp/ornith-1.0-35B",
-    "ollama/robit/ornith-vision:35b"
+    "anthropic/claude-haiku-4-5"
   ],
   "npmCommand": [
     "bun"
