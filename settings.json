@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.83.0",
+  "lastChangelogVersion": "0.84.2",
   "theme": "dark",
   "defaultProvider": "github-copilot",
   "defaultModel": "claude-sonnet-4.6",
@@ -32,9 +32,11 @@
     "bun"
   ],
   "enableInstallTelemetry": false,
+  "enableAnalytics": false,
   "editorPaddingX": 0,
   "quietStartup": true,
   "packages": [
     "https://github.com/antob/pi-cbm"
-  ]
+  ],
+  "tuiMode": "fullscreen"
 }

@@ -1,6 +1,6 @@
 ---
 name: domain-modeling
-description: Build and sharpen a project's domain model. Use when the user wants to pin down domain terminology or a ubiquitous language, record an architectural decision, or when another skill needs to maintain the domain model.
+description: Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or editing a CONTEXT.md, or recording or editing an ADR.
 ---
 
 # Domain Modeling
@@ -11,7 +11,7 @@ Actively build and sharpen the project's domain model as you design. This is the
 
 Most repos have a single context:
 
-```text
+```
 /
 ├── CONTEXT.md
 ├── docs/
@@ -23,7 +23,7 @@ Most repos have a single context:
 
 If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts. The map points to where each one lives:
 
-```text
+```
 /
 ├── CONTEXT-MAP.md
 ├── docs/
