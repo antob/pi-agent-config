@@ -10,10 +10,17 @@
       },
       "models": [
         {
-          "id": "qwen3.6:35b",
+          "id": "qwen3.6:35b-a3b-xl",
+          "name": "Qwen3.6-35B-A3B",
           "input": ["text", "image"],
-          "contextWindow": 262144,
-          "maxTokens": 8192,
+          "contextWindow": 65535,
+          "reasoning": true
+        },
+        {
+          "id": "qwen3.6:35b-a3b-mtp",
+          "name": "Qwen3.6-35B-A3B-MTP",
+          "input": ["text", "image"],
+          "contextWindow": 65535,
           "reasoning": true
         },
         {
@@ -38,20 +45,32 @@
       "apiKey": "none",
       "models": [
         {
-          "id": "qwen3.6-35B",
-          "contextWindow": 262144,
+          "id": "Qwen3.6-35B-A3B",
+          "contextWindow": 65536,
           "reasoning": true,
           "input": ["text", "image"]
         },
         {
-          "id": "gemma-4-26B",
-          "contextWindow": 262144,
+          "id": "Qwen3.6-35B-A3B-MTP",
+          "contextWindow": 65536,
           "reasoning": true,
           "input": ["text", "image"]
         },
         {
-          "id": "ornith-1.0-35B",
-          "contextWindow": 262144,
+          "id": "Qwen3.8-27B",
+          "contextWindow": 65536,
+          "reasoning": true,
+          "input": ["text", "image"]
+        },
+        {
+          "id": "Gemma-4-26B-A4B",
+          "contextWindow": 65536,
+          "reasoning": true,
+          "input": ["text", "image"]
+        },
+        {
+          "id": "Ornith-1.0-35B",
+          "contextWindow": 65536,
           "reasoning": true,
           "input": ["text", "image"]
         }
