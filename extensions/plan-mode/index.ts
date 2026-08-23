@@ -26,15 +26,7 @@ import {
 } from "./utils.js";
 
 // Tools
-const PLAN_MODE_TOOLS = [
-  "read",
-  "bash",
-  "grep",
-  "find",
-  "ls",
-  "question",
-  "questionnaire",
-];
+const PLAN_MODE_TOOLS = ["read", "bash", "grep", "find", "ls", "ask_user"];
 const NORMAL_MODE_TOOLS = ["read", "bash", "edit", "write"];
 
 // Type guard for assistant messages
@@ -185,7 +177,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 You are in plan mode - a read-only exploration mode for safe code analysis.
 
 Restrictions:
-- You can only use: read, bash, grep, find, ls, questionnaire
+- You can only use: read, bash, grep, find, ls, ask_user
 - You CANNOT use: edit, write (file modifications are disabled)
 - Bash is restricted to an allowlist of read-only commands
 
@@ -193,7 +185,7 @@ Guidelines:
 - Make the plan extremely concise. Sacrifice grammar for the sake of concision.
 - At the end of each plan, give me a list of unresolved questions to answer, if any.
 
-Ask clarifying questions using the questionnaire tool.
+Ask clarifying questions using the ask_user tool.
 Use web-search skill via bash for web research.
 
 Create a detailed numbered plan under a "Plan:" header:
