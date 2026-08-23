@@ -1,7 +1,7 @@
 {
   "providers": {
     "ollama": {
-      "baseUrl": "http://localhost:11434/v1",
+      "baseUrl": "http://desktob.antob.net:11434/v1",
       "api": "openai-completions",
       "apiKey": "ollama",
       "compat": {
