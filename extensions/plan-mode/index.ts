@@ -186,7 +186,7 @@ Guidelines:
 - At the end of each plan, give me a list of unresolved questions to answer, if any.
 
 Ask clarifying questions using the ask_user tool.
-Use web-search skill via bash for web research.
+Use web_search tool via bash for web research.
 
 Create a detailed numbered plan under a "Plan:" header:
 
