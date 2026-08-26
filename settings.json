@@ -38,8 +38,7 @@
   "editorPaddingX": 0,
   "quietStartup": true,
   "packages": [
-    "https://github.com/antob/pi-cbm",
-    "npm:@eko24ive/pi-ask"
+    "https://github.com/antob/pi-cbm"
   ],
   "tuiMode": "fullscreen"
 }

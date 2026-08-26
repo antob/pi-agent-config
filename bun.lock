@@ -5,16 +5,17 @@
     "": {
       "name": "pi-agent-config",
       "dependencies": {
-        "@earendil-works/pi-ai": "latest",
-        "@earendil-works/pi-coding-agent": "latest",
-        "@earendil-works/pi-tui": "latest",
-        "diff": "latest",
-        "micromatch": "latest",
-        "typescript": "latest",
-        "wreq-js": "latest",
+        "@earendil-works/pi-ai": "^0.84.2",
+        "@earendil-works/pi-coding-agent": "^0.84.2",
+        "@earendil-works/pi-tui": "^0.84.2",
+        "diff": "^9.0.0",
+        "micromatch": "^4.0.8",
+        "shell-quote": "^1.10.0",
+        "typescript": "^7.0.2",
+        "wreq-js": "^3.0.0",
       },
       "devDependencies": {
-        "@types/micromatch": "latest",
+        "@types/micromatch": "^4.0.10",
       },
     },
   },
@@ -328,6 +329,8 @@
     "shebang-command": ["shebang-command@2.0.0", "", { "dependencies": { "shebang-regex": "^3.0.0" } }, "sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA=="],
 
     "shebang-regex": ["shebang-regex@3.0.0", "", {}, "sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A=="],
+
+    "shell-quote": ["shell-quote@1.10.0", "", {}, "sha512-w1aiOKwKuRgtwAReIIj89puqg+I7GvX4IbLrvmhXbzQsj1+Zwi4VO3+fa6ZF91TWSjIxoEkKnMeHcLEODK5ZXA=="],
 
     "signal-exit": ["signal-exit@3.0.7", "", {}, "sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ=="],
 

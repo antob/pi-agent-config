@@ -6,5 +6,6 @@ node_modules
 npm
 git
 tmp
+deprecated
 .worktrees
 notify-on-stop.json
