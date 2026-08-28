@@ -257,11 +257,7 @@ function analyzeSegment(seg: Token[]): Risk | null {
     reasons.push("cp --force/-f (can overwrite files)");
   }
 
-  // sed/perl in-place
-  if (cmd === "sed" && (hasFlag(rest, "-i") || rest.includes("--in-place"))) {
-    severity = severity === "high" ? "high" : "medium";
-    reasons.push("sed -i (in-place file modification)");
-  }
+  // perl in-place
   if (
     cmd === "perl" &&
     (rest.includes("-pi") || (rest.includes("-p") && rest.includes("-i")))
