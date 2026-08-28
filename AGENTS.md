@@ -14,6 +14,15 @@
 - No flowery language, no "I'd be happy to", no "Great question!".
 - Be direct and technical.
 
+## Operational Preferences (from prompting analysis)
+
+- Default to read-only investigation and advice. Do not run commands, edit config, or deploy unless explicitly asked. The user often says "investigate", "just advise", "Do not run any nix commands", and runs the steps himself.
+- Before running local work, the user may choose to execute it himself. Provide clear, runnable steps; do not assume you will perform the deployment.
+- Do not run expensive or risky commands such as `grep` on huge files, system reboots, or destructive operations without explicit approval. Prefer targeted tools or `ollama`/built-ins over scanning massive files.
+- Iterate in small, verifiable steps for UI or script tweaks. Expect tight feedback loops backed by screenshots (`@/tmp/pi-clipboard-*.png`) and "I reloaded, try again" prompts.
+- When asked to compare or benchmark models/configs, surface the concrete numbers and a clear recommendation, then let the user pick.
+- When a task will span multiple sessions, persist the plan to a Markdown file in the repo so work can resume fresh later.
+
 ## Shell Gotchas
 
 - `pgrep`/`pkill` use extended regex (ERE) by default. Use `"ruby|rails|puma"`, never `"ruby\|rails\|puma"` (the backslash-pipe matches a literal `|`).
