@@ -575,7 +575,7 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_start", async (event, ctx) => {
     if (
       event.reason === "startup" &&
-      pi.getFlag("--bash-guard-disabled") === true
+      pi.getFlag("bash-guard-disabled") === true
     ) {
       disabled = true;
       const { theme } = ctx.ui;
@@ -649,7 +649,7 @@ export default function (pi: ExtensionAPI) {
       };
     }
 
-    if (!ctx.hasUI && pi.getFlag("--bash-guard-auto-allow")) {
+    if (!ctx.hasUI && pi.getFlag("bash-guard-auto-allow")) {
       // Non-interactive mode: allow when explicitly requested.
       return;
     }
