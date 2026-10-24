@@ -45,45 +45,6 @@
           "reasoning": true
         }
       ]
-    },
-    "llama-cpp": {
-      "baseUrl": "http://localhost:8080/v1",
-      "api": "openai-completions",
-      "apiKey": "none",
-      "models": [
-        {
-          "id": "Qwen3.6-35B-A3B",
-          "contextWindow": 65536,
-          "maxTokens": 16384,
-          "reasoning": true,
-          "input": ["text", "image"]
-        },
-        {
-          "id": "Qwen3.6-35B-A3B-MTP",
-          "contextWindow": 65536,
-          "maxTokens": 16384,
-          "reasoning": true,
-          "input": ["text", "image"]
-        },
-        {
-          "id": "Qwen3.8-27B",
-          "contextWindow": 65536,
-          "reasoning": true,
-          "input": ["text", "image"]
-        },
-        {
-          "id": "Gemma-4-26B-A4B",
-          "contextWindow": 65536,
-          "reasoning": true,
-          "input": ["text", "image"]
-        },
-        {
-          "id": "Ornith-1.0-35B",
-          "contextWindow": 65536,
-          "reasoning": true,
-          "input": ["text", "image"]
-        }
-      ]
     }
   }
 }

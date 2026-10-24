@@ -1,44 +1,27 @@
 {
-  "lastChangelogVersion": "0.84.2",
-  "theme": "dark",
+  "lastChangelogVersion": "1.4.0",
+  "theme": "system",
   "defaultProvider": "openrouter",
-  "defaultModel": "deepseek/deepseek-v4-flash-0731",
+  "defaultModel": "deepseek/deepseek-v4.1-flash-1017",
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "enabledModels": [
-    "llama-cpp/Qwen3.6-35B-A3B",
-    "llama-cpp/Qwen3.6-35B-A3B-MTP",
-    "llama-cpp/Ornith-1.0-35B",
     "ollama/ornith-1.5:35b",
-    "ollama/qwen3.6:35b-a3b-mtp-q4_K_M",
-    "ollama/qwen3.6:35b-a3b",
-    "github-copilot/claude-sonnet-4.6",
-    "github-copilot/claude-haiku-4.5",
-    "github-copilot/gpt-5-mini",
-    "github-copilot/gemini-3.1-pro-preview",
-    "github-copilot/gemini-3.5-flash",
     "openrouter/anthropic/claude-opus-5",
     "openrouter/anthropic/claude-sonnet-5",
     "openrouter/anthropic/claude-haiku-4.5",
-    "openrouter/google/gemini-3.1-pro-preview-customtools",
-    "openrouter/google/gemini-3-flash-preview",
-    "openrouter/google/gemini-3.1-flash-lite-preview",
     "openrouter/moonshotai/kimi-k3",
-    "openrouter/deepseek/deepseek-v4-pro",
-    "openrouter/deepseek/deepseek-v4-flash-0731",
     "anthropic/claude-opus-5",
     "anthropic/claude-sonnet-5",
-    "anthropic/claude-haiku-4-5"
+    "anthropic/claude-haiku-4-5",
+    "openrouter/deepseek/deepseek-v4.1-flash-1017"
   ],
-  "npmCommand": [
-    "bun"
-  ],
+  "npmCommand": ["bun"],
   "enableInstallTelemetry": false,
   "enableAnalytics": false,
   "editorPaddingX": 0,
-  "quietStartup": true,
-  "packages": [
-    "https://github.com/antob/pi-cbm"
-  ],
-  "tuiMode": "fullscreen"
+  "quietStartup": "header",
+  "packages": ["https://github.com/antob/pi-cbm", "npm:pi-autoresearch"],
+  "tuiMode": "fullscreen",
+  "showCacheMissNotices": true
 }
