@@ -287,12 +287,6 @@ function analyzeSegment(seg: Token[]): Risk | null {
     reasons.push("systemctl stop/disable (service disruption)");
   }
 
-  // Remote execution patterns
-  if ((cmd === "curl" || cmd === "wget") && ops.includes("|")) {
-    severity = "high";
-    reasons.push("curl/wget piped (possible remote code execution)");
-  }
-
   // Infra deletes
   if (cmd === "kubectl" && rest[0] === "delete") {
     severity = "high";
