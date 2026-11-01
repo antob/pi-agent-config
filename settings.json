@@ -14,14 +14,24 @@
     "anthropic/claude-opus-5",
     "anthropic/claude-sonnet-5",
     "anthropic/claude-haiku-4-5",
-    "openrouter/deepseek/deepseek-v4.1-flash-1017"
+    "openrouter/deepseek/deepseek-v4.1-flash-1017",
+    "claude-bridge/claude-opus-5-5",
+    "claude-bridge/claude-sonnet-5-5",
+    "claude-bridge/claude-haiku-5-5"
   ],
-  "npmCommand": ["bun"],
+  "npmCommand": [
+    "bun"
+  ],
   "enableInstallTelemetry": false,
   "enableAnalytics": false,
   "editorPaddingX": 0,
   "quietStartup": "header",
-  "packages": ["https://github.com/antob/pi-cbm", "npm:pi-autoresearch"],
+  "packages": [
+    "https://github.com/antob/pi-cbm",
+    "npm:pi-autoresearch",
+    "npm:pi-claude-bridge",
+    "npm:@czottmann/pi-automode"
+  ],
   "tuiMode": "fullscreen",
   "showCacheMissNotices": true
 }
