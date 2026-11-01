@@ -4,9 +4,8 @@ Personal configuration for the [pi coding agent](https://github.com/mariozechner
 
 ## Contents
 
-- **extensions** — custom UI and behavior extensions (alert, answer formatting, btw, caveman, clipboard, clipboard-sixel, context, files, filter-output, footer, handoff, plan mode, prompt injection guard, review, sandbox, security, sketch, tool display, usage, verbosity leash)
-- **skills** — instruction sets for specialized tasks (browser automation, caveman mode, git commits, frontend design, git worktrees, humanizer, image generation, tmux, update changelog, web fetch, web search, write-a-skill, zoxide)
-- **themes** — color themes (Catppuccin Mocha, Gruvbox, One Dark, Tokyo Night, custom dark)
+- **extensions** — custom UI and behavior extensions (ask user, auto mode, btw, caveman, Claude usage band, clipboard, context, git no gpg, handoff, plan mode, prompt injection guard, prompt snippets, raw paste, review, rtk, subagent, tmux agent marker, usage, verbosity leash, web fetch, web search, workmux status)
+- **skills** — instruction sets for specialized tasks (analyze sessions, code review, codebase design, commit, diagnosing bugs, domain modeling, extending pi, grilling, humanizer, image generation, prototype, research, resolving merge conflicts, TDD, teach, tmux, update changelog, workmux, worktree, write-a-skill, zoxide, and a few planning skills such as to-spec and to-tickets)
 
 ## Usage
 
