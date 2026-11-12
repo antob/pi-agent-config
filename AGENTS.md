@@ -12,6 +12,7 @@
 - When user mentions an issue or topic, just summarize or discuss it. Don't jump into action.
 - Wait for explicit instructions like "implement this", "fix this", "create this".
 - Default to read-only investigation and advice. Do not run builds, deploys, `nixos-rebuild`, `nix` commands, service restarts, reboots, or anything with `sudo` unless explicitly asked. Print the command instead.
+- cbm graph tools (pi-cbm) are read-only investigation and always allowed without asking.
 - The user often says "investigate", "just advise", "do not run any nix commands", and runs the steps himself. Treat those as absolute.
 - Do not stage, commit, or push unless asked.
 
@@ -40,11 +41,19 @@
 ## Scope
 
 - Do not touch files outside the current repo. Never `find` on `/`, `/nix/store`, or `$HOME`. Scope to repo paths and use `rg` with a path and `-g` filter.
-- Do not `grep` or read very large files. Ask for the relevant slice or use `rg` with context.
+- Do not `grep` or read very large files. Prefer cbm symbol tools for code; otherwise ask for the relevant slice or use `rg` with context.
 - Inspecting remote hosts read-only over SSH is fine. Changing remote state is not, unless asked.
 - Prefer the repo justfile recipes (`just build`, `just deploy`, `just up`) over raw commands, but still do not run them unasked.
 - When asked to dispatch work to workmux worktrees, do not research first. Write the task to a temp prompt file with relative paths, then run `workmux add <name> -b -P <file>`. For other projects, run it from a `tmux new-window -t <session> -c <path>` window. Use `workmux --help` for anything else.
 - Do not create new files when something inline was requested, and do not split a change across extra modules, scripts, or config files beyond what was asked.
+
+## Code Navigation (pi-cbm)
+
+- For structural questions in a git repo (where is X defined, who calls X, what breaks if X changes, repo overview), use the cbm graph tools before `rg` or reading files. They are read-only and need no confirmation.
+- Pick the tool by input. Symbol name: `resolve_symbol` or `read_symbol`. Exact string, env var, config key, error message: `search_code`. Callers, callees, impact: `trace_path`. First look at an unfamiliar repo: `get_architecture`. Diff review: `detect_changes`.
+- `search_graph` with natural-language queries ranks tests and loosely related symbols high. Prefer `search_code` or a name pattern, and use `file_pattern` to exclude tests.
+- Fall back to `rg` or `read` for non-code files (README, config, YAML, Nix, SQL), for untracked files, and when a result is truncated even after retrying with `full_output=true`.
+- pi-cbm builds the index automatically. If a tool says the project is not indexed, say so in one line and ask the user to check `/cbm status`. Do not run `codebase-memory-mcp cli index_repository` yourself.
 
 ## Iterating on UI and Extensions
 
