@@ -2,7 +2,7 @@
   "autoMode": {
     "classifierModel": "openrouter/deepseek/deepseek-v4.1-flash-1017",
     "classifierReasoningLevel": "low",
-    "fastClassifierMaxTokens": 1024,
+    "fastClassifierMaxTokens": 2048,
     "log": {
       "enabled": true,
       "classifierIo": true
