@@ -9,3 +9,4 @@ tmp
 claude-bridge.json
 /claude-bridge
 *.log
+extensions/pi-automode/logs/
