@@ -1,5 +1,12 @@
 {
   "autoMode": {
+    "classifierModel": "openrouter/deepseek/deepseek-v4.1-flash-1017",
+    "classifierReasoningLevel": "low",
+    "fastClassifierMaxTokens": 1024,
+    "log": {
+      "enabled": true,
+      "classifierIo": true
+    },
     "allowInsideWorkingDirectory": true,
     "deniedPaths": [
       "~/.ssh/*",
