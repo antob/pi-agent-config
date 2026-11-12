@@ -21,7 +21,6 @@ Not tracked: `auth.json`, `trust.json`, `models-store.json`, `sessions/`, `node_
 Installed through `settings.json`:
 
 - `antob/pi-cbm`
-- `pi-autoresearch`
 - `pi-claude-bridge`
 - `@czottmann/pi-automode`
 - `@mrclrchtr/supi-prompt-suggestions`
