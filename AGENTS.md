@@ -55,6 +55,11 @@
 - Fall back to `rg` or `read` for non-code files (README, config, YAML, Nix, SQL), for untracked files, and when a result is truncated even after retrying with `full_output=true`.
 - pi-cbm builds the index automatically. If a tool says the project is not indexed, say so in one line and ask the user to check `/cbm status`. Do not run `codebase-memory-mcp cli index_repository` yourself.
 
+## Model Selection
+
+- When launching pi with a model (for example `pi --model haiku`), resolve the name against `enabledModels` in `~/.pi/agent/settings.json` first, and use the full `provider/id` from there. Only search other providers if nothing in `enabledModels` matches.
+- Instructions in a skill or extension overrule this rule.
+
 ## Iterating on UI and Extensions
 
 - Expect tight feedback loops: user sends screenshots (`@/tmp/pi-clipboard-*.png`) and says "I reloaded, try again".
