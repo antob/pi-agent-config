@@ -1,11 +1,19 @@
 # AGENTS.md
 
+## Where This Lives
+
+- This repo is `~/Projects/pi-agent-config`. It is bind mounted at `/home/tob/.pi/agent`, so there is one single place for Pi config. Either path edits the same files.
+- This file is the global AGENTS.md for every project. Inside this repo it is loaded twice, which is expected.
+- `auth.json`, `trust.json`, `models-store.json`, `sessions/`, `node_modules/` and `npm/` are local state and not tracked.
+
 ## Behavior
 
 - Do NOT start implementing, designing, or modifying code unless explicitly asked.
 - When user mentions an issue or topic, just summarize or discuss it. Don't jump into action.
 - Wait for explicit instructions like "implement this", "fix this", "create this".
-- No unnecessary comments and emojis.
+- Default to read-only investigation and advice. Do not run builds, deploys, `nixos-rebuild`, `nix` commands, service restarts, reboots, or anything with `sudo` unless explicitly asked. Print the command instead.
+- The user often says "investigate", "just advise", "do not run any nix commands", and runs the steps himself. Treat those as absolute.
+- Do not stage, commit, or push unless asked.
 
 ## Response Style
 
@@ -14,7 +22,7 @@
 - No em dashes, en dashes, or hyphens used as sentence interrupters. Use periods, commas, or parentheses.
 - No flowery language, no praise ("I'd be happy to", "Great question"), no filler closings.
 - No unsolicited follow-up offers ("would you like me to also..."). Stop when the task is done.
-- Code comments: at most one or two lines, only where the code is not self-explanatory. The code is the documentation.
+- No emojis. Code comments only where the code is not self-explanatory, at most one or two lines.
 - Commit messages, PR text, changelogs, and docs: plain and factual, no ornamental language.
 
 ## Workflow
@@ -27,22 +35,16 @@
 - Never claim a change works. The user builds, deploys, reboots, and reports back. Wait for that.
 - When the user says a fix "did not work", ask for or use the exact output before proposing another fix. Do not stack guesses.
 - Work from output the user pasted. Do not re-collect it by re-running the same command yourself.
+- Plans, runbooks, and investigation summaries that may be resumed later go into a Markdown file in the repo, named for the topic and kept current. Not only in chat.
 
-## Command and Change Discipline
+## Scope
 
-- Default to read-only investigation and advice. Do not run builds, deploys, `nixos-rebuild`, `nix` commands, service restarts, reboots, or anything with `sudo` unless explicitly asked. Print the command instead.
-- The user often says "investigate", "just advise", "do not run any nix commands", and runs the steps himself. Treat those as absolute.
 - Do not touch files outside the current repo. Never `find` on `/`, `/nix/store`, or `$HOME`. Scope to repo paths and use `rg` with a path and `-g` filter.
 - Do not `grep` or read very large files. Ask for the relevant slice or use `rg` with context.
 - Inspecting remote hosts read-only over SSH is fine. Changing remote state is not, unless asked.
 - Prefer the repo justfile recipes (`just build`, `just deploy`, `just up`) over raw commands, but still do not run them unasked.
+- When asked to dispatch work to workmux worktrees, do not research first. Write the task to a temp prompt file with relative paths, then run `workmux add <name> -b -P <file>`. For other projects, run it from a `tmux new-window -t <session> -c <path>` window. Use `workmux --help` for anything else.
 - Do not create new files when something inline was requested, and do not split a change across extra modules, scripts, or config files beyond what was asked.
-- Do not stage, commit, or push unless asked.
-
-## Persistence
-
-- Plans, runbooks, and investigation summaries that may be resumed later go into a Markdown file in the repo, not only in chat.
-- Name the file for the topic and keep it current when the plan changes.
 
 ## Iterating on UI and Extensions
 
@@ -51,17 +53,10 @@
 
 ## Shell Gotchas
 
-- `pgrep`/`pkill` use extended regex (ERE) by default. Use `"ruby|rails|puma"`, never `"ruby\|rails\|puma"` (the backslash-pipe matches a literal `|`).
-- `grep` without `-E` uses basic regex (BRE), where `\|` is alternation. With `grep -E` or `egrep`, use plain `|`.
-- When in doubt about a regex flavour, prefer `-E` and plain `|`.
+- `pgrep`/`pkill` use extended regex (ERE). Use `"ruby|rails|puma"`, never `"ruby\|rails\|puma"`.
+- `grep` without `-E` uses BRE, where `\|` is alternation. With `grep -E`, use plain `|`. When in doubt, prefer `-E` and plain `|`.
 - In Nix strings, bash `${VAR}` must be written `''${VAR}` to avoid Nix interpolation.
 
-## Skills: How to Use Them
+## Skills
 
-Skills listed in `<available_skills>` are NOT tools. They are not callable via `<invoke>`. They are instruction sets stored in files.
-
-When a task matches a skill's description:
-
-1. Use the `read` tool to load the skill's SKILL.md file.
-2. Follow the instructions in that file (they will tell you which tools to actually call, e.g. `bash`).
-3. Never attempt to invoke a skill by name as a tool call.
+Skills in `<available_skills>` are not tools and cannot be invoked. When a task matches one, `read` its SKILL.md and follow it using real tools such as `bash`.

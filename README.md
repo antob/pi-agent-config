@@ -1,16 +1,33 @@
 # pi-agent-config
 
-Personal configuration for the [pi coding agent](https://github.com/mariozechner/pi).
+Personal configuration for the [pi coding agent](https://github.com/mariozechner/pi). This repo is the live agent directory, bind mounted at `~/.pi/agent`.
 
-## Contents
+## Layout
 
-- **extensions** — custom UI and behavior extensions (ask user, auto mode, btw, caveman, Claude usage band, clipboard, context, git no gpg, handoff, plan mode, prompt injection guard, prompt snippets, raw paste, review, rtk, subagent, tmux agent marker, usage, verbosity leash, web fetch, web search, workmux status)
-- **skills** — instruction sets for specialized tasks (analyze sessions, code review, codebase design, commit, diagnosing bugs, domain modeling, extending pi, grilling, humanizer, image generation, prototype, research, resolving merge conflicts, TDD, teach, tmux, update changelog, workmux, worktree, write-a-skill, zoxide, and a few planning skills such as to-spec and to-tickets)
+| Path | Purpose |
+| --- | --- |
+| `extensions/` | Custom extensions. |
+| `skills/` | Instruction sets loaded on demand via `SKILL.md`. |
+| `AGENTS.md` | Global instructions for every project. |
+| `settings.json` | Pi settings, default model, enabled models, packages. |
+| `models.json`, `llama_cpp_preset.ini` | Custom model and local llama.cpp config. |
+| `keybindings.json`, `session-recap.json`, `supi/` | Per extension and package settings. |
+| `deprecated/` | Retired extensions, skills, agents, prompts and themes. Kept for a while before deletion or restore. Gitignored. |
 
-## Usage
+Not tracked: `auth.json`, `trust.json`, `models-store.json`, `sessions/`, `node_modules/`, `npm/`.
 
-Install as a pi package:
+## Packages
 
-```sh
-pi install https://github.com/antob/pi-agent-config
-```
+Installed through `settings.json`:
+
+- `antob/pi-cbm`
+- `pi-autoresearch`
+- `pi-claude-bridge`
+- `@czottmann/pi-automode`
+- `@mrclrchtr/supi-prompt-suggestions`
+
+## Maintenance
+
+- `just update` updates the local dependencies with `bun`.
+- `bun` is configured as the npm command in `settings.json`.
+- `bun run typecheck` type checks the extensions.

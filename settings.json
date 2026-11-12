@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "1.4.0",
+  "lastChangelogVersion": "1.5.2",
   "theme": "system",
   "defaultProvider": "claude-bridge",
   "defaultModel": "claude-sonnet-5-5",
@@ -19,20 +19,21 @@
     "claude-bridge/claude-sonnet-5-5",
     "claude-bridge/claude-haiku-5-5"
   ],
-  "npmCommand": [
-    "bun"
-  ],
+  "npmCommand": ["bun"],
   "enableInstallTelemetry": false,
   "enableAnalytics": false,
   "editorPaddingX": 0,
   "quietStartup": "header",
   "packages": [
     "https://github.com/antob/pi-cbm",
-    "npm:pi-autoresearch",
     "npm:pi-claude-bridge",
     "npm:@czottmann/pi-automode",
     "npm:@mrclrchtr/supi-prompt-suggestions"
   ],
   "tuiMode": "fullscreen",
-  "showCacheMissNotices": true
+  "showCacheMissNotices": true,
+  "extensionChangelogVersions": {
+    "{\"source\":\"npm:@czottmann/pi-automode\",\"scope\":\"user\"}": "1.17.0",
+    "{\"source\":\"npm:@mrclrchtr/supi-prompt-suggestions\",\"scope\":\"user\"}": "11.4.0"
+  }
 }

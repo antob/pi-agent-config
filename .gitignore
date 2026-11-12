@@ -9,3 +9,4 @@ tmp
 deprecated
 .worktrees
 notify-on-stop.json
+*.log
