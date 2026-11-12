@@ -159,17 +159,15 @@ export default function (pi: ExtensionAPI) {
       }
 
       // Launch a new tmux pane with pi and the handoff prompt
-      const { execSync } = await import("node:child_process");
+      const { spawnSync } = await import("node:child_process");
 
-      // Escape single quotes in the prompt for shell safety
-      const escapedPrompt = editedPrompt.replace(/'/g, "'\\''");
-
-      try {
-        execSync(`tmux split-window -h "pi '${escapedPrompt}'"`, {
-          stdio: "ignore",
-        });
+      // Argument array, no shell: tmux execs `pi <prompt>` directly.
+      const launch = spawnSync("tmux", ["split-window", "-h", "pi", "--", editedPrompt], {
+        stdio: "ignore",
+      });
+      if (launch.status === 0) {
         ctx.ui.notify("Handoff launched in new tmux pane.", "info");
-      } catch {
+      } else {
         ctx.ui.notify(
           "Failed to open tmux pane. Are you inside a tmux session?",
           "error",
