@@ -45,7 +45,7 @@ interface BandState {
 }
 
 const WINDOW_ORDER: WindowKey[] = ["7d", "5h"];
-const WINDOW_COLOR: Record<WindowKey, Color> = { "7d": "accent", "5h": "warning" };
+const WINDOW_COLOR: Record<WindowKey, Color> = { "7d": "mdLink", "5h": "warning" };
 
 // =============================================================================
 // Parsing and formatting (pure)
