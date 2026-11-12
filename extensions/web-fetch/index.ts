@@ -477,7 +477,10 @@ async function extractViaHttp(
     }
 
     const { document } = parseHTML(text);
-    const reader = new Readability(document as unknown as Document);
+    // linkedom's document stands in for the DOM Document Readability expects.
+    const reader = new Readability(
+      document as unknown as ConstructorParameters<typeof Readability>[0],
+    );
     const article = reader.parse();
 
     if (!article) {

@@ -26,6 +26,7 @@
     "unpdf": "^2.1.0"
   },
   "devDependencies": {
-    "@types/micromatch": "^4.0.10"
+    "@types/micromatch": "^4.0.10",
+    "@types/turndown": "^5.0.6"
   }
 }
