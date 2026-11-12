@@ -6,18 +6,12 @@
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "enabledModels": [
-    "ollama/ornith-1.5:35b",
-    "openrouter/anthropic/claude-opus-5",
-    "openrouter/anthropic/claude-sonnet-5",
-    "openrouter/anthropic/claude-haiku-4.5",
-    "openrouter/moonshotai/kimi-k3",
-    "anthropic/claude-opus-5",
-    "anthropic/claude-sonnet-5",
-    "anthropic/claude-haiku-4-5",
-    "openrouter/deepseek/deepseek-v4.1-flash-1017",
     "claude-bridge/claude-opus-5-5",
     "claude-bridge/claude-sonnet-5-5",
-    "claude-bridge/claude-haiku-5-5"
+    "claude-bridge/claude-haiku-5-5",
+    "openrouter/deepseek/deepseek-v4.1-flash-1017",
+    "ollama/ornith-1.5:35b",
+    "openrouter/moonshotai/kimi-k3"
   ],
   "defaultTools": ["+codemode"],
   "npmCommand": ["bun"],
