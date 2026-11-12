@@ -30,7 +30,8 @@
     "https://github.com/antob/pi-cbm",
     "npm:pi-autoresearch",
     "npm:pi-claude-bridge",
-    "npm:@czottmann/pi-automode"
+    "npm:@czottmann/pi-automode",
+    "npm:@mrclrchtr/supi-prompt-suggestions"
   ],
   "tuiMode": "fullscreen",
   "showCacheMissNotices": true
