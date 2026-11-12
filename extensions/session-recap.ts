@@ -431,12 +431,19 @@ export default function (pi: ExtensionAPI) {
     }, seconds(config.awaySeconds));
   };
 
-  const handleFocusIn = () => {
-    focusEventsSeen = true;
+  // Typing proves focus even when a focus-in report was lost. Does not set
+  // focusEventsSeen, so terminals without focus reporting keep the idle fallback.
+  const markActive = () => {
+    if (!isBlurred) return;
     isBlurred = false;
     awayRecapPending = false;
     clearAwayTimer();
     clearPostTurnTimer();
+  };
+
+  const handleFocusIn = () => {
+    focusEventsSeen = true;
+    markActive();
     clearIdleTimer();
     // Leave an in-flight recap to land as the user returns.
   };
@@ -451,13 +458,13 @@ export default function (pi: ExtensionAPI) {
       return;
     }
 
-    // Focus sequences may straddle input chunks, so retain the unmatched tail.
-    const maxSeq = Math.max(FOCUS_IN_SEQ.length, FOCUS_OUT_SEQ.length);
+    // Focus sequences may straddle input chunks, so retain a tail that could
+    // still become one. Any other byte is user input.
     let buf = "";
     const listener = (chunk: Buffer) => {
       buf += chunk.toString("binary");
       let i = 0;
-      while (i + maxSeq <= buf.length) {
+      while (i < buf.length) {
         if (buf.startsWith(FOCUS_IN_SEQ, i)) {
           handleFocusIn();
           i += FOCUS_IN_SEQ.length;
@@ -465,6 +472,9 @@ export default function (pi: ExtensionAPI) {
           handleFocusOut(ctx);
           i += FOCUS_OUT_SEQ.length;
         } else {
+          const rest = buf.slice(i);
+          if (FOCUS_IN_SEQ.startsWith(rest) || FOCUS_OUT_SEQ.startsWith(rest)) break;
+          markActive();
           i++;
         }
       }
@@ -518,6 +528,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("input", (_event, ctx) => {
+    markActive();
     clearIdleTimer();
     clearPostTurnTimer();
     clearAwayTimer();
