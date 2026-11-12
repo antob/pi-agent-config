@@ -9,4 +9,5 @@ tmp
 deprecated
 .worktrees
 notify-on-stop.json
+claude-bridge.json
 *.log
