@@ -6,9 +6,6 @@ node_modules
 npm
 git
 tmp
-deprecated
-.worktrees
-notify-on-stop.json
 claude-bridge.json
 /claude-bridge
 *.log
