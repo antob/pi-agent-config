@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "model": "openrouter/deepseek/deepseek-v4.1-flash-1017",
+  "awaySeconds": 90,
+  "idleSeconds": 120,
+  "focusReporting": true,
+  "duringActive": false
+}
