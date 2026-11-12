@@ -317,6 +317,53 @@ def find_skills(base):
     return sorted(out)
 
 
+# ---------- selection ----------
+
+FILTER = None  # None = audit everything, else a list of normalized names
+
+
+def norm(name):
+    return str(name).strip().lower().rstrip("/").removesuffix(".ts")
+
+
+def wanted(*names):
+    if FILTER is None:
+        return True
+    have = {norm(n) for n in names if n}
+    return any(t in have for t in FILTER)
+
+
+def package_names(src, ident, pj):
+    name = pj.get("name") or ""
+    short = (name or ident).rstrip("/").split("/")[-1]
+    # The alias without "pi-" lets pi-automode be selected as "automode"; automode hard-denies
+    # interpreter commands whose text contains its own package name.
+    return {src, ident, ident.rstrip("/").split("/")[-1], name, short, short.removeprefix("pi-")}
+
+
+def catalog():
+    """Every auditable item as (kind, names, path)."""
+    items = []
+    for entry in sorted((ROOT / "extensions").iterdir()):
+        if entry.name.startswith("."):
+            continue
+        if (entry.is_file() and entry.suffix == ".ts") or (
+                entry.is_dir() and ((entry / "index.ts").exists() or (entry / "package.json").exists())):
+            items.append(("extension", {entry.name, entry.stem}, entry))
+    for s in find_skills(ROOT / "skills"):
+        items.append(("skill", {frontmatter(s).get("name"), s.parent.name}, s.parent))
+    settings = read_json(ROOT / "settings.json") or {}
+    for item in settings.get("packages", []):
+        src = item if isinstance(item, str) else item.get("source", "")
+        kind, ident, _, pdir = parse_source(src)
+        pj = read_json(pdir / "package.json") or {}
+        items.append(("package", package_names(src, ident, pj), pdir))
+        for sd in package_resources(pdir, pj)[1]:
+            for s in find_skills(sd):
+                items.append(("package skill", {frontmatter(s).get("name"), s.parent.name}, s.parent))
+    return items
+
+
 # ---------- security scan ----------
 
 def scan(files, max_hits):
@@ -396,16 +443,43 @@ def section_versions(offline):
 TSC = ROOT / "node_modules" / ".bin" / "tsc"
 
 
+def _types_entry(value):
+    if isinstance(value, str):
+        return value if value.endswith(".d.ts") else None
+    if isinstance(value, dict):
+        if isinstance(value.get("types"), str):
+            return value["types"]
+        for v in value.values():
+            found = _types_entry(v)
+            if found:
+                return found
+    return None
+
+
 def pi_paths(include_current):
-    """tsconfig paths that point Pi imports (and legacy @mariozechner ones) at the repo's packages."""
+    """tsconfig paths that point Pi imports (and legacy @mariozechner ones) at the repo's packages.
+
+    Targets are the .d.ts files from each package's exports. A bare package directory does not
+    resolve under NodeNext ESM, and tsc then silently falls back to normal node_modules lookup.
+    """
     nm = ROOT / "node_modules" / "@earendil-works"
     names = ("pi-coding-agent", "pi-ai", "pi-tui", "pi-agent-core")
     paths = {}
     scopes = [LEGACY_SCOPE] + (["@earendil-works/"] if include_current else [])
-    for scope in scopes:
-        for n in names:
-            paths[f"{scope}{n}"] = [str(nm / n)]
-            paths[f"{scope}{n}/*"] = [str(nm / n / "*")]
+    for n in names:
+        pj = read_json(nm / n / "package.json") or {}
+        exports = pj.get("exports")
+        entries = {}
+        if isinstance(exports, dict) and any(k.startswith(".") for k in exports):
+            for key, value in exports.items():
+                t = _types_entry(value)
+                if t:
+                    entries[key[1:]] = t  # "." -> "", "./compat" -> "/compat"
+        elif pj.get("types"):
+            entries[""] = pj["types"]
+        for scope in scopes:
+            for sub, t in entries.items():
+                paths[f"{scope}{n}{sub}"] = [str((nm / n / t).resolve()) if "*" not in t else str(nm / n / t)]
     return paths
 
 
@@ -441,13 +515,24 @@ def print_tsc(code, errors, other, max_hits, note, indent=""):
         print(f"{indent}- {line}")
 
 
-def section_typecheck(max_hits):
+def section_typecheck(max_hits, targets=None):
+    """targets: local paths to report errors for; None means all."""
+    if targets is not None and not targets:
+        return
     print("## TypeScript check (local, against repo Pi)\n")
     if not TSC.exists():
         print("- tsc not found in node_modules/.bin, run `bun install`\n")
         return
     config = {"extends": str(ROOT / "tsconfig.json"), "compilerOptions": {"paths": pi_paths(False)}}
-    print_tsc(*run_tsc(config), max_hits, "legacy @mariozechner imports mapped to @earendil-works")
+    code, errors, other = run_tsc(config)
+    note = "legacy @mariozechner imports mapped to @earendil-works"
+    if targets is not None:
+        roots = [Path(t).resolve() for t in targets]
+        errors = {f: e for f, e in errors.items()
+                  if any(Path(f) == r or r in Path(f).parents for r in roots)}
+        code = 1 if errors or other else 0
+        note += ", errors limited to the selected items"
+    print_tsc(code, errors, other, max_hits, note)
     print()
 
 
@@ -574,10 +659,12 @@ def package_changelog(built, repo_core, files, max_hits):
 
 
 def section_local_extensions(max_hits):
+    entries_all = [e for e in sorted((ROOT / "extensions").iterdir())
+                   if not e.name.startswith(".") and wanted(e.name, e.stem)]
+    if not entries_all:
+        return
     print("## Local extensions (extensions/)\n")
-    for entry in sorted((ROOT / "extensions").iterdir()):
-        if entry.name.startswith("."):
-            continue
+    for entry in entries_all:
         if entry.is_dir():
             pj = read_json(entry / "package.json")
             entries, _ = package_resources(entry, pj) if pj else ([], [])
@@ -634,18 +721,34 @@ def section_skill(skill_md, max_hits, origin):
 
 
 def section_local_skills(max_hits):
+    skills = [s for s in find_skills(ROOT / "skills") if wanted(frontmatter(s).get("name"), s.parent.name)]
+    if not skills:
+        return
     print("## Local skills (skills/)\n")
-    for s in find_skills(ROOT / "skills"):
+    for s in skills:
         section_skill(s, max_hits, "local")
 
 
 def section_packages(repo_core, offline, max_hits, typecheck):
-    print("## Packages (settings.json)\n")
     settings = read_json(ROOT / "settings.json") or {}
+    header = False
     for item in settings.get("packages", []):
         src = item if isinstance(item, str) else item.get("source", "")
         kind, ident, ref, pdir = parse_source(src)
         pj = read_json(pdir / "package.json") or {}
+        pkg_wanted = wanted(*package_names(src, ident, pj))
+        pkg_skills = [s for sd in package_resources(pdir, pj)[1] for s in find_skills(sd)]
+        shown_skills = pkg_skills if pkg_wanted else [
+            s for s in pkg_skills if wanted(frontmatter(s).get("name"), s.parent.name)]
+        if not pkg_wanted and not shown_skills:
+            continue
+        if not header:
+            print("## Packages (settings.json)\n")
+            header = True
+        if not pkg_wanted:
+            for s in shown_skills:
+                section_skill(s, max_hits, f"from {pj.get('name') or ident}")
+            continue
         print(f"### {pj.get('name') or ident}\n")
         print(f"- source: {src} ({kind}), dir: {rel(pdir)}{'' if pdir.exists() else ' MISSING'}")
         print(f"- description: {pj.get('description') or 'none'}")
@@ -710,9 +813,8 @@ def section_packages(repo_core, offline, max_hits, typecheck):
             package_changelog(built, repo_core, files, max_hits)
         print_scan(files, max_hits)
         print()
-        for sd in skill_dirs:
-            for s in find_skills(sd):
-                section_skill(s, max_hits, f"from {pj.get('name') or ident}")
+        for s in shown_skills:
+            section_skill(s, max_hits, f"from {pj.get('name') or ident}")
 
 
 def section_install_scripts():
@@ -738,19 +840,42 @@ def main():
     ap.add_argument("--no-typecheck", action="store_true")
     ap.add_argument("--max-hits", type=int, default=6, help="locations listed per category")
     ap.add_argument("--out", type=Path, default=ROOT / "tmp" / "pi-audit", help="directory for the facts file")
+    ap.add_argument("names", nargs="*", help="limit the audit to these extensions, skills or packages")
     a = ap.parse_args()
+
+    global FILTER
+    items = catalog()
+    targets = None
+    if a.names:
+        FILTER = [norm(n) for n in a.names]
+        known = {norm(n) for _, names, _ in items for n in names if n}
+        unknown = [n for n, t in zip(a.names, FILTER) if t not in known]
+        if unknown:
+            print(f"unknown name(s): {', '.join(unknown)}", file=sys.stderr)
+            for kind, names, path in items:
+                print(f"  {kind:13} {min((n for n in names if n), key=len):35} {rel(path)}", file=sys.stderr)
+            return 2
+        targets = [path for kind, names, path in items
+                   if kind in ("extension", "skill") and wanted(*names)]
+
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
         print(f"# Pi extension audit facts\n\nroot: {ROOT}\n")
+        if FILTER:
+            print(f"selection: {', '.join(a.names)}\n")
         repo_core = section_versions(a.offline)
         if not a.no_typecheck:
-            section_typecheck(a.max_hits)
+            section_typecheck(a.max_hits, targets)
         section_local_extensions(a.max_hits)
         section_local_skills(a.max_hits)
         section_packages(repo_core, a.offline, a.max_hits, not a.no_typecheck)
-        section_install_scripts()
+        if FILTER is None:
+            section_install_scripts()
     a.out.mkdir(parents=True, exist_ok=True)
-    path = a.out / f"{datetime.date.today().isoformat()}-facts.md"
+    suffix = ""
+    if FILTER:
+        suffix = "-" + "-".join(re.sub(r"[^a-z0-9]+", "-", t).strip("-") for t in FILTER)
+    path = a.out / f"{datetime.date.today().isoformat()}-facts{suffix}.md"
     path.write_text(buf.getvalue())
     print(buf.getvalue())
     print(f"facts saved to {path}")

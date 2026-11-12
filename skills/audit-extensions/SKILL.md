@@ -1,6 +1,6 @@
 ---
 name: audit-extensions
-description: Audit the user's Pi extensions, skills and packages. Checks compatibility with the Pi version pinned in ~/.pi/agent/package.json (TypeScript check of local extensions, peer ranges and API use of packages), warns when the global pi binary differs from the repo version, reviews code for security issues, checks for newer package versions, and produces a summary table. Use when the user asks to check, audit, review or health-check their extensions, skills or packages, or before or after upgrading Pi.
+description: Audit the user's Pi extensions, skills and packages. Checks compatibility with the Pi version pinned in ~/.pi/agent/package.json (TypeScript check of local extensions, peer ranges and API use of packages), warns when the global pi binary differs from the repo version, reviews code for security issues, checks for newer package versions, and produces a summary table. Can audit everything or only named extensions, skills or packages. Use when the user asks to check, audit, review or health-check their extensions, skills or packages (all or a specific one), or before or after upgrading Pi.
 ---
 
 # Audit Extensions
@@ -17,14 +17,18 @@ python3 -I ~/.pi/agent/skills/audit-extensions/scripts/audit.py
 
 Flags: `--offline` (skip npm registry and `git ls-remote`), `--no-typecheck`, `--max-hits N`, `--out DIR`.
 
-The script prints a Markdown report and saves it to `~/.pi/agent/tmp/pi-audit/YYYY-MM-DD-facts.md`. It contains:
+To audit specific items, pass their names as arguments, for example `audit.py handoff web-fetch pi-cbm`. Names match a local extension file or directory (with or without `.ts`), a skill name, a package name or source (`pi-claude-bridge`, `@mrclrchtr/supi-prompt-suggestions`, `npm:pi-claude-bridge`, or the last part of either), or a package-provided skill. Selecting a package includes its skills. An unknown name exits with code 2 and lists every valid name; pick the intended one or ask the user. With a selection, Pi versions are still reported, the local TypeScript errors are limited to the selected items, and the installed-dependency lifecycle section is skipped.
+
+Packages can also be selected by their short name without a `pi-` prefix (`cbm`, `claude-bridge`). Use `automode` for the auto-mode package: pi-automode hard-denies any `python3` command whose text contains its full package name, so every other name for it is blocked. A full run with no names is not affected.
+
+The script prints a Markdown report and saves it to `~/.pi/agent/tmp/pi-audit/YYYY-MM-DD-facts.md`, or `YYYY-MM-DD-facts-<names>.md` for a selection. It contains:
 
 - **Pi versions**: global, declared, installed, copy under `npm/node_modules`, latest on npm, and version warnings.
 - **TypeScript check**: `tsc` over the repo `tsconfig.json` (local `extensions/` and `skills/` `.ts`). Legacy `@mariozechner/*` imports are remapped to `@earendil-works/*` for the check, because a stale 0.73 copy of the old scope may sit in `node_modules` and would otherwise hide real breakage.
 - **Local extensions / skills / packages**: paths, the extension's doc comment or package description, registered tools/commands/providers, Pi imports, legacy imports, frontmatter problems, peer ranges evaluated against the repo version, the Pi version a package was built against (devDependencies), lifecycle script commands, and update status (npm `latest`, git remote HEAD vs local HEAD). Use the doc and registrations for the Summary column instead of opening files.
 - **Package TypeScript check**: each package's extension entry points checked against the repo's Pi packages. With a shipped `tsconfig.json` its settings are used. Without one, tsc runs with and without `strict` and only errors present in both are listed; settings-dependent errors are counted but not shown, because they reflect the package's code style rather than Pi API changes.
 - **Changelog matches**: for packages built against an older Pi, the Breaking Changes and Removed entries of the Pi changelog between that version and the repo version, limited to entries whose API identifiers appear in the package source, with `file:line`. Matches are leads: read the entry and the code to decide whether the change affects how the package uses the symbol.
-- **Security leads**: regex hits per category with `file:line`, and hosts referenced. `SHELL-STRING` (shell commands built with template literals, concatenation, `shell: true`, `sh -c`) is high priority, review every hit. Then `exec`, `eval`, `network`, `secrets`, `fs-write`, `obfuscation`, and low-priority `env` (env var reads, first 3 locations only). In Markdown files only `shell-string`, `network` and `obfuscation` count. These are leads, not findings. Most hits are benign.
+- **Security leads**: regex hits per category with `file:line`, and hosts referenced. `SHELL-STRING` (shell commands built with template literals, concatenation, a true `shell` option, `sh -c`) is high priority, review every hit. Then `exec`, `eval`, `network`, `secrets`, `fs-write`, `obfuscation`, and low-priority `env` (env var reads, first 3 locations only). In Markdown files only `shell-string`, `network` and `obfuscation` count. These are leads, not findings. Most hits are benign.
 
 ## 2. Compatibility
 
@@ -54,7 +58,7 @@ pi-automode hard-denies, in code, any `sed`, `python`, `node`, `perl`, `ruby`, `
 
 Start with warnings, most important first. If the global Pi version differs from the repo version, the first line must say so, with both versions.
 
-Then one table covering every local extension, local skill, package, and package-provided skill:
+Then one table covering every local extension, local skill, package, and package-provided skill in the facts (only the selected ones for a selective run):
 
 | Name | Kind | Source | Version | Latest | Pi compat | Security | Summary |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -68,4 +72,4 @@ Then one table covering every local extension, local skill, package, and package
 
 After the table, a short findings list only for rows that are not ok/OK, each with `file:line` and the suggested fix. Then list update commands, for example `pi update npm:@czottmann/pi-automode`, and `bun update` in `~/.pi/agent` for repo Pi deps. Do not run them.
 
-Write the full report (warnings, table, findings, update commands) to `~/.pi/agent/tmp/pi-audit/YYYY-MM-DD-report.md`, overwriting a report from the same day, and give the path at the end of the chat reply.
+Write the full report (warnings, table, findings, update commands) next to the facts file, with the same name but `report` instead of `facts` (for example `YYYY-MM-DD-report-handoff.md`), overwriting a report from the same day, and give the path at the end of the chat reply.
