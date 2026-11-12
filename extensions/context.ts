@@ -10,8 +10,8 @@ import {
   type ExtensionAPI,
   type SessionManager,
   DynamicBorder
-} from "@mariozechner/pi-coding-agent";
-import { Container, Text, Spacer, matchesKey } from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-coding-agent";
+import { Container, Text, Spacer, matchesKey } from "@earendil-works/pi-tui";
 
 export function formatTokens(tokens: number | undefined | null): string {
   if (tokens == null) return "Unknown";

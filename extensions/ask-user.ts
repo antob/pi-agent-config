@@ -3,7 +3,7 @@ import type {
   ExtensionContext,
   KeybindingsManager,
   Theme,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import {
   Editor,
   type EditorTheme,
@@ -13,7 +13,7 @@ import {
   matchesKey,
   truncateToWidth,
   wrapTextWithAnsi,
-} from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-tui";
 import { Type } from "@sinclair/typebox";
 
 interface AskOption {
