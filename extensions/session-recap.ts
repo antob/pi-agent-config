@@ -299,6 +299,8 @@ export default function (pi: ExtensionAPI) {
   let focusListener: ((chunk: Buffer) => void) | undefined;
   let focusEnabled = false;
   let isBlurred = false;
+  let blurredSince = 0;
+  let idleCtx: ExtensionContext | undefined;
   let focusEventsSeen = false;
   let lastDraftedContext: string | undefined;
 
@@ -419,8 +421,19 @@ export default function (pi: ExtensionAPI) {
     if (!activeController) void generateAndShow(ctx, "focus");
   };
 
+  // The idle fallback counts from the last sign of life, so typing postpones it.
+  const armIdleTimer = (ctx: ExtensionContext) => {
+    clearIdleTimer();
+    idleCtx = ctx;
+    idleTimer = setTimeout(() => {
+      idleTimer = undefined;
+      if (!focusEventsSeen) void generateAndShow(ctx, "idle");
+    }, seconds(config.idleSeconds));
+  };
+
   const handleFocusOut = (ctx: ExtensionContext) => {
     focusEventsSeen = true;
+    if (!isBlurred) blurredSince = Date.now();
     isBlurred = true;
     clearIdleTimer();
     if (!config.enabled) return;
@@ -448,14 +461,23 @@ export default function (pi: ExtensionAPI) {
     // Leave an in-flight recap to land as the user returns.
   };
 
+  // Any keystroke proves presence, so it also postpones a pending idle recap.
+  const noteInput = () => {
+    markActive();
+    if (idleTimer && idleCtx) armIdleTimer(idleCtx);
+  };
+
+  // Always listens to stdin so typing is seen; only requests focus reports
+  // when focusReporting is on.
   const attachFocusReporting = (ctx: ExtensionContext) => {
-    if (focusEnabled || !config.focusReporting || !ctx.hasUI) return;
+    if (focusListener || !ctx.hasUI) return;
     if (!process.stdout.isTTY || !process.stdin.isTTY) return;
 
-    try {
-      process.stdout.write(FOCUS_ENABLE);
-    } catch {
-      return;
+    if (config.focusReporting) {
+      try {
+        process.stdout.write(FOCUS_ENABLE);
+        focusEnabled = true;
+      } catch {}
     }
 
     // Focus sequences may straddle input chunks, so retain a tail that could
@@ -474,7 +496,7 @@ export default function (pi: ExtensionAPI) {
         } else {
           const rest = buf.slice(i);
           if (FOCUS_IN_SEQ.startsWith(rest) || FOCUS_OUT_SEQ.startsWith(rest)) break;
-          markActive();
+          noteInput();
           i++;
         }
       }
@@ -482,7 +504,6 @@ export default function (pi: ExtensionAPI) {
     };
     process.stdin.on("data", listener);
     focusListener = listener;
-    focusEnabled = true;
   };
 
   const detachFocusReporting = () => {
@@ -503,8 +524,10 @@ export default function (pi: ExtensionAPI) {
   pi.on("turn_end", (_event, ctx) => {
     if (!config.enabled || !ctx.hasUI) return;
 
-    // Debounce mid-loop turn_end → turn_start pairs.
-    if (isBlurred) {
+    // Only when already away for the full threshold; a shorter blur is covered
+    // by the away timer, which defers to agent_settled while a run is active.
+    // The debounce skips mid-loop turn_end → turn_start pairs.
+    if (isBlurred && Date.now() - blurredSince >= seconds(config.awaySeconds)) {
       clearPostTurnTimer();
       postTurnTimer = setTimeout(() => {
         postTurnTimer = undefined;
@@ -512,13 +535,7 @@ export default function (pi: ExtensionAPI) {
       }, POST_TURN_DEBOUNCE_MS);
     }
 
-    if (!focusEventsSeen) {
-      clearIdleTimer();
-      idleTimer = setTimeout(() => {
-        idleTimer = undefined;
-        if (!focusEventsSeen) void generateAndShow(ctx, "idle");
-      }, seconds(config.idleSeconds));
-    }
+    if (!focusEventsSeen) armIdleTimer(ctx);
   });
 
   pi.on("turn_start", () => {
