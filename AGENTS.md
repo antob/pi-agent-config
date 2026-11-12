@@ -57,6 +57,15 @@
 - `grep` without `-E` uses BRE, where `\|` is alternation. With `grep -E`, use plain `|`. When in doubt, prefer `-E` and plain `|`.
 - In Nix strings, bash `${VAR}` must be written `''${VAR}` to avoid Nix interpolation.
 
+## YubiKey Touch
+
+- The user has a YubiKey (OpenPGP applet) with touch required (UIF on) for the signature, decryption and authentication keys. `SSH_AUTH_SOCK` is gpg-agent's SSH socket, so SSH auth uses the YubiKey authentication key.
+- Each of these needs a physical touch and blocks until it happens: `ssh`, `scp`, `rsync` over ssh, and git over SSH (`git@github.com:...` remotes: `fetch`, `pull`, `push`, `clone`, `ls-remote`). Also anything that decrypts with the card (`gpg --decrypt`, `pass`, `sops`) and GPG signing (user-run commits and tags).
+- Agent commits are signed with a file key via `GIT_CONFIG_*` (`/run/secrets/agent_signing_key`), so they need no touch.
+- Before running a command from the list above, tell the user in one line that a touch is needed. Batch remote operations into as few commands as possible, one touch each.
+- Always set a timeout on these commands. A hang or timeout almost always means the user is AFK and the key is waiting for a touch. Report the failure in one line and wait for the user to return. Do not retry, and do not look for workarounds.
+- Prefer local-only git commands (`status`, `diff`, `log`, `add`) which need no touch.
+
 ## Skills
 
 Skills in `<available_skills>` are not tools and cannot be invoked. When a task matches one, `read` its SKILL.md and follow it using real tools such as `bash`.
