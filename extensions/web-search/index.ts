@@ -1,6 +1,12 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { Text } from "@earendil-works/pi-tui";
+import { fetch as wreqFetch } from "wreq-js";
+
+// wreq-js impersonates the browser TLS/HTTP2 fingerprint and sends that
+// browser's own headers, so no User-Agent or Accept headers are set here.
+const BROWSER = "chrome";
+const BROWSER_OS = "windows";
 
 interface SearchResult {
   title: string;
@@ -24,6 +30,31 @@ interface BuiltSearchQuery {
   site?: string;
 }
 
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+};
+
+// Single pass, so "&amp;lt;" decodes to "&lt;" and not "<".
+function decodeEntities(text: string): string {
+  return text.replace(
+    /&(?:#(\d+)|#x([0-9a-f]+)|([a-z]+));/gi,
+    (match, dec, hex, name) => {
+      if (name) return NAMED_ENTITIES[name.toLowerCase()] ?? match;
+      const code = dec ? parseInt(dec, 10) : parseInt(hex, 16);
+      try {
+        return String.fromCodePoint(code);
+      } catch {
+        return match;
+      }
+    },
+  );
+}
+
 async function duckduckgoSearch(
   query: string,
   count: number,
@@ -32,20 +63,27 @@ async function duckduckgoSearch(
   const num = Math.min(count, 10);
   const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
 
-  const resp = await fetch(url, {
+  const resp = await wreqFetch(url, {
     signal,
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-    },
+    browser: BROWSER,
+    os: BROWSER_OS,
   });
   if (!resp.ok) {
     throw new Error(`DuckDuckGo ${resp.status}: ${resp.statusText}`);
   }
 
   const html = await resp.text();
+
+  // The bot check answers 202 or a challenge page, applied to the whole IP.
+  if (
+    resp.status === 202 ||
+    html.includes("anomaly-modal") ||
+    html.includes("challenge-form")
+  ) {
+    throw new Error(
+      "DuckDuckGo bot check (rate limited). It applies to this IP for roughly 10 to 30 minutes. Wait, reduce the number of searches, or use web_fetch on a known URL instead.",
+    );
+  }
 
   const results: SearchResult[] = [];
   const blockRe =
@@ -60,9 +98,15 @@ async function duckduckgoSearch(
     try {
       url = decodeURIComponent(rawUrl);
     } catch {}
-    const title = m[2].replace(/<[^>]*>/g, "").trim();
-    const snippet = m[3].replace(/<[^>]*>/g, "").trim();
+    const title = decodeEntities(m[2].replace(/<[^>]*>/g, "")).trim();
+    const snippet = decodeEntities(m[3].replace(/<[^>]*>/g, "")).trim();
     results.push({ title, url, snippet });
+  }
+
+  if (results.length === 0 && !html.includes("no-results")) {
+    throw new Error(
+      "DuckDuckGo returned a page with no parseable results (markup may have changed or the request was blocked).",
+    );
   }
 
   return results;

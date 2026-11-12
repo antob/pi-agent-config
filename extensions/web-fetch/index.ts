@@ -4,9 +4,12 @@ import { Text } from "@earendil-works/pi-tui";
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
+import { fetch as wreqFetch } from "wreq-js";
 
-const USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+// wreq-js impersonates the browser TLS/HTTP2 fingerprint and sends that
+// browser's own headers, so no User-Agent or Sec-Fetch headers are set here.
+const BROWSER = "chrome";
+const BROWSER_OS = "windows";
 const DEFAULT_TIMEOUT_MS = 30000;
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024;
 const MAX_PDF_SIZE = 20 * 1024 * 1024;
@@ -26,6 +29,8 @@ interface FetchResult {
   title: string;
   content: string;
   error: string | null;
+  /** The request failed before any HTTP response (network or TLS error). */
+  transport?: boolean;
 }
 
 // ── PDF Extraction ───────────────────────────────────────────────────
@@ -343,6 +348,52 @@ function isLikelyJSRendered(html: string): boolean {
   return textContent.length < 500 && scriptCount > 3;
 }
 
+const BOT_BLOCK_STATUSES = new Set([403, 429, 503]);
+
+// Only called for non-2xx responses. DataDome sets x-datadome on its pages.
+function isBotBlockResponse(status: number, headers: { get(name: string): string | null }): boolean {
+  return (
+    headers.get("cf-mitigated") === "challenge" ||
+    headers.get("x-datadome") !== null ||
+    BOT_BLOCK_STATUSES.has(status)
+  );
+}
+
+// Challenge and block pages are often served with HTTP 200, or come back
+// through the Jina fallback. Only short pages are checked, so a long article
+// that mentions one of these phrases is not misclassified.
+const CHALLENGE_PAGE_MAX_CHARS = 3000;
+const CHALLENGE_PAGE_PATTERNS = [
+  /just a moment\.\.\./i,
+  /performing security verification/i,
+  /prove your humanity/i,
+  /blocked by network security/i,
+  /additional verification required/i,
+  /verify (that )?you are (a )?human/i,
+  /are you a (human|robot)/i,
+  /checking your browser/i,
+  /attention required/i,
+  /access denied/i,
+  /security check/i,
+  /unusual traffic/i,
+  /enable javascript and cookies to continue/i,
+];
+
+function looksLikeChallengePage(title: string, content: string): boolean {
+  if (content.length > CHALLENGE_PAGE_MAX_CHARS) return false;
+  const text = `${title}\n${content}`;
+  return CHALLENGE_PAGE_PATTERNS.some((re) => re.test(text));
+}
+
+// Cloudflare interstitial served with HTTP 200.
+function isCloudflareChallengePage(html: string): boolean {
+  return (
+    /<title>\s*Just a moment\.\.\.\s*<\/title>/i.test(html) &&
+    html.includes("_cf_chl_opt") &&
+    html.includes("/cdn-cgi/challenge-platform/")
+  );
+}
+
 function extractHeadingTitle(text: string): string | null {
   const match = text.match(/^#{1,2}\s+(.+)/m);
   if (!match) return null;
@@ -374,7 +425,11 @@ async function extractWithJinaReader(
     if (
       markdownPart.length < 100 ||
       markdownPart.startsWith("Loading...") ||
-      markdownPart.startsWith("Please enable JavaScript")
+      markdownPart.startsWith("Please enable JavaScript") ||
+      looksLikeChallengePage(
+        content.match(/^Title:\s*(.*)$/m)?.[1] ?? "",
+        markdownPart,
+      )
     ) {
       return null;
     }
@@ -401,28 +456,20 @@ async function extractViaHttp(
   signal?.addEventListener("abort", onAbort);
 
   try {
-    const response = await fetch(url, {
+    const response = await wreqFetch(url, {
       signal: controller.signal,
-      headers: {
-        "User-Agent": USER_AGENT,
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Cache-Control": "no-cache",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-        "Upgrade-Insecure-Requests": "1",
-      },
+      timeout: DEFAULT_TIMEOUT_MS,
+      browser: BROWSER,
+      os: BROWSER_OS,
     });
 
     if (!response.ok) {
+      const blocked = isBotBlockResponse(response.status, response.headers);
       return {
         url,
         title: "",
         content: "",
-        error: `HTTP ${response.status}: ${response.statusText}`,
+        error: `HTTP ${response.status}: ${response.statusText}${blocked ? " (blocked, likely bot protection)" : ""}`,
       };
     }
 
@@ -476,6 +523,18 @@ async function extractViaHttp(
       return { url, title, content: text, error: null };
     }
 
+    if (
+      response.headers.get("cf-mitigated") === "challenge" ||
+      isCloudflareChallengePage(text)
+    ) {
+      return {
+        url,
+        title: "",
+        content: "",
+        error: "Blocked by a Cloudflare challenge (bot protection)",
+      };
+    }
+
     const { document } = parseHTML(text);
     // linkedom's document stands in for the DOM Document Readability expects.
     const reader = new Readability(
@@ -507,6 +566,15 @@ async function extractViaHttp(
 
     const markdown = turndown.turndown(article.content);
 
+    if (looksLikeChallengePage(article.title || "", markdown)) {
+      return {
+        url,
+        title: "",
+        content: "",
+        error: "Blocked by a bot-check page (bot protection)",
+      };
+    }
+
     if (markdown.length < MIN_USEFUL_CONTENT) {
       return {
         url,
@@ -526,7 +594,7 @@ async function extractViaHttp(
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return { url, title: "", content: "", error: message };
+    return { url, title: "", content: "", error: message, transport: true };
   } finally {
     clearTimeout(timeoutId);
     signal?.removeEventListener("abort", onAbort);
@@ -564,9 +632,14 @@ async function fetchAndExtract(
   if (jinaResult) return jinaResult;
   if (signal?.aborted) return { url, title: "", content: "", error: "Aborted" };
 
+  const reason = httpResult.error.includes("bot protection")
+    ? "The site blocks automated access and the Jina Reader fallback also failed."
+    : httpResult.transport
+      ? "The request failed before a response was received (network or TLS error) and the Jina Reader fallback also failed."
+      : "The page may be JavaScript-rendered.";
   return {
     ...httpResult,
-    error: `${httpResult.error}\n\nThe page may be JavaScript-rendered. Try:\n  • A different URL for the same content\n  • web_search to find cached/alternative versions`,
+    error: `${httpResult.error}\n\n${reason} Try:\n  • A different URL for the same content\n  • web_search to find cached/alternative versions`,
   };
 }
 
