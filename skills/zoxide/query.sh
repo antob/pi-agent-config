@@ -17,9 +17,9 @@ count=$(echo "$results" | wc -l | tr -d ' ')
 
 if [[ "$count" -eq 1 ]]; then
   # Single match: print just the path
-  echo "$results" | awk '{print $2}'
+  echo "$results" | sed -E 's/^ *[0-9.]+ +//'
 else
   # Multiple matches: print ranked list (score + path)
   echo "Top matches for \"$*\":"
-  echo "$results" | awk '{printf "%2d. %s  (score: %s)\n", NR, $2, $1}'
+  echo "$results" | awk '{s=$1; sub(/^ *[0-9.]+ +/, ""); printf "%2d. %s  (score: %s)\n", NR, $0, s}'
 fi
