@@ -13,7 +13,7 @@
     "ollama/ornith-1.5:35b",
     "openrouter/moonshotai/kimi-k3"
   ],
-  "defaultTools": ["+codemode"],
+  "defaultTools": ["+codemode", "+tool_search"],
   "npmCommand": ["bun"],
   "enableInstallTelemetry": false,
   "enableAnalytics": false,
