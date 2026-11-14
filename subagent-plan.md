@@ -1,6 +1,8 @@
 # Subagent skill plan
 
 Status: all phases done. Phase 4 tests passed on 2026-11-14 (see below).
+Review fixes (see "Review fixes") are written, typecheck passes, and the retest
+passed on 2026-11-14.
 
 Decisions: option 2 (skill + extension). Child tools: `read,bash,edit,write` plus
 `subagent_report` (no codemode, tool_search or MCP). Reports are custom extension
@@ -150,8 +152,43 @@ The user's global AGENTS.md still applies.
    - Auto mode did not block running `spawn.sh`. pi overrides the pane title with its
      own (`π - subagent: <name> - <dir>`), so the `-T` title is cosmetic only.
 
+## Review fixes (code review by a subagent, 2026-11-14)
+
+Done in `spawn.sh`, `SKILL.md`, `child-prompt.md`:
+
+- Task is passed on stdin (`-`) or as a file and copied to `run_dir/task.md`, so there
+  are no predictable `/tmp` task files and nothing to clean up.
+- Refuses to run without `XDG_RUNTIME_DIR` (no `/tmp` fallback).
+- run.sh exports `PI_SUBAGENT_RUN_DIR`, writes `failed` only when pi exits non-zero
+  and `run_dir/reported` is missing, builds the JSON with `jq`, and turns a failed
+  `cd` into a `failed` report instead of exiting silently.
+- Removed the ineffective `select-pane -T`. Output line shows thinking when inherited.
+- SKILL.md: stdin heredoc, refer to subagents by name with pane ID, malformed reports.
+- child-prompt.md: report the question instead of stopping for review.
+
+Done in `extensions/subagent.ts`:
+
+- Unique report file names (`<id>-<ms>-<uuid8>.json`), drop the `seen` set.
+- Nested pi guard via `PI_SUBAGENT_CHILD_PID` (only the pid spawn.sh started is the child).
+- `subagent_report`: catch write errors; if undelivered, stay open and say so.
+- Write the `run_dir/reported` marker; use it (not just memory) to skip
+  `exited-without-report` after /reload.
+- Watcher `error` handler; clear the inbox on `startup` (stale inbox, pid reuse).
+- No `/tmp` fallback; malformed reports become a message; unlink after sending.
+- Add `failed` to `ReportStatus`; drop the redundant `setActiveTools`.
+
+Retest after reload, all passed: single subagent (report, pane closes, `--tools` alone
+enables `subagent_report`), keep-open plus `/reload` in the child then a second report
+(arrived; Ctrl+D afterwards sent nothing), quit before reporting (exactly one
+`exited-without-report`), unknown model (`failed`).
+
 ## Possible follow-ups
 
-- Task files in `/tmp/pi-subagent-*.md` are not cleaned up automatically.
-
-Fixed: `spawn.sh` now creates the run dirs under `umask 077`, so `runs/` is 700 too.
+- Pane identification: the pi session name is now `subagent: <name> (%N)`, so pi's
+  pane title includes the pane ID.
+- Pane titles (nixos-config, uncommitted): `tmux.conf` sets `pane-border-status top`
+  and a border format without the click buttons; `zsh.nix` sets the pane title to the
+  running command in tmux and clears it at the prompt.
+- Written, typecheck passes, untested: `extensions/terminal-title.ts` (pi title `π <state><label>`, label =
+  session name, else shortened first prompt, else cwd; state `● ` working, `? `
+  waiting on a UI prompt, nothing idle).

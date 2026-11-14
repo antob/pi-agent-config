@@ -14,5 +14,6 @@ to you directly.
   conversation. Include: the outcome, files changed (paths), commands run that matter,
   findings, and open questions. Keep it concise.
 - Do not end your turn without calling `subagent_report` unless the user in this pane
-  is talking to you directly.
+  is talking to you directly. If other instructions would make you stop for review,
+  confirmation or a choice, call `subagent_report` with the question instead.
 - Do not start further subagents.

@@ -12,8 +12,8 @@
  * "exited-without-report" entry so the parent is never left waiting.
  */
 
+import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { Type } from "typebox";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -21,7 +21,8 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 const MESSAGE_TYPE = "subagent-report";
 const TOOL_NAME = "subagent_report";
 
-type ReportStatus = "done" | "exited-without-report";
+// "failed" is written by spawn.sh's run.sh when pi exits non-zero without reporting.
+type ReportStatus = "done" | "exited-without-report" | "failed";
 
 interface Report {
   id: string;
@@ -43,53 +44,69 @@ export default function (pi: ExtensionAPI) {
 // ---------------------------------------------------------------- parent
 
 function setupParent(pi: ExtensionAPI) {
-  const runtimeDir = process.env.XDG_RUNTIME_DIR || os.tmpdir();
+  // No /tmp fallback: another local user could pre-create it and inject reports.
+  const runtimeDir = process.env.XDG_RUNTIME_DIR;
+  if (!runtimeDir) return;
   const inbox = path.join(runtimeDir, "pi-subagents", String(process.pid));
   let watcher: fs.FSWatcher | undefined;
-  const seen = new Set<string>();
 
   function exportModel(ctx: ExtensionContext) {
     if (ctx.model) process.env.PI_SUBAGENT_MODEL = `${ctx.model.provider}/${ctx.model.id}`;
     process.env.PI_SUBAGENT_THINKING = pi.getThinkingLevel();
   }
 
-  function deliver(file: string) {
-    if (!file.endsWith(".json") || seen.has(file)) return;
-    const full = path.join(inbox, file);
-    let report: Report;
-    try {
-      report = JSON.parse(fs.readFileSync(full, "utf-8")) as Report;
-    } catch {
-      return; // not there (yet), or already handled
-    }
-    seen.add(file);
-    try {
-      fs.unlinkSync(full);
-    } catch {}
-
-    const lines = [
+  function format(report: Report): string {
+    return [
       `Subagent report from "${report.name}" (id ${report.id}, status ${report.status}).`,
       `Pane: ${report.pane ?? "unknown"} (${report.keepOpen ? "kept open" : "closing"})`,
       `Session file: ${report.sessionFile ?? "none"}`,
       `Working directory: ${report.cwd}`,
       "",
       report.summary || "(empty report)",
-    ];
-    pi.sendMessage(
-      { customType: MESSAGE_TYPE, content: lines.join("\n"), display: true, details: report },
-      { triggerTurn: true, deliverAs: "followUp" },
-    );
+    ].join("\n");
   }
 
-  pi.on("session_start", async (_event, ctx) => {
+  // Reports only appear by rename, so a readable file is always complete. Read,
+  // send and unlink run in one tick, so duplicate watch events find no file.
+  function deliver(file: string) {
+    if (!file.endsWith(".json")) return;
+    const full = path.join(inbox, file);
+    let raw: string;
+    try {
+      raw = fs.readFileSync(full, "utf-8");
+    } catch {
+      return;
+    }
+    let report: Report | undefined;
+    try {
+      report = JSON.parse(raw) as Report;
+    } catch {}
+    const content = report
+      ? format(report)
+      : `Malformed subagent report ${full}:\n\n${raw.slice(0, 2000)}`;
+    pi.sendMessage(
+      { customType: MESSAGE_TYPE, content, display: true, details: report },
+      { triggerTurn: true, deliverAs: "followUp" },
+    );
+    fs.rmSync(full, { force: true });
+  }
+
+  pi.on("session_start", async (event, ctx) => {
+    // A crashed pi with the same pid may have left an inbox with old reports.
+    if (event.reason === "startup") fs.rmSync(inbox, { recursive: true, force: true });
     fs.mkdirSync(inbox, { recursive: true, mode: 0o700 });
     process.env.PI_SUBAGENT_INBOX = inbox;
     exportModel(ctx);
 
     watcher?.close();
-    watcher = fs.watch(inbox, (_type, file) => {
+    const w = fs.watch(inbox, (_type, file) => {
       if (file) deliver(file.toString());
     });
+    w.on("error", () => {
+      w.close();
+      if (watcher === w) watcher = undefined;
+    });
+    watcher = w;
     for (const file of fs.readdirSync(inbox)) deliver(file);
   });
 
@@ -107,11 +124,21 @@ function setupParent(pi: ExtensionAPI) {
 // ----------------------------------------------------------------- child
 
 function setupChild(pi: ExtensionAPI, inbox: string) {
+  // A pi started from this subagent's bash tool inherits the env. Only the pi
+  // that spawn.sh started (same pid across /reload) acts as the subagent.
+  const owner = process.env.PI_SUBAGENT_CHILD_PID;
+  if (owner && owner !== String(process.pid)) return;
+  process.env.PI_SUBAGENT_CHILD_PID = String(process.pid);
+
   const id = process.env.PI_SUBAGENT_ID || String(process.pid);
   const name = process.env.PI_SUBAGENT_NAME || id;
   const keepOpen = process.env.PI_SUBAGENT_KEEP_OPEN === "1";
+  // Marker read by run.sh (no extra "failed" report) and kept across /reload.
+  const runDir = process.env.PI_SUBAGENT_RUN_DIR;
+  const marker = runDir ? path.join(runDir, "reported") : undefined;
   let reported = false;
-  let seq = 0;
+
+  const hasReported = () => reported || (marker !== undefined && fs.existsSync(marker));
 
   function writeReport(ctx: ExtensionContext, status: ReportStatus, summary: string) {
     const report: Report = {
@@ -124,10 +151,12 @@ function setupChild(pi: ExtensionAPI, inbox: string) {
       sessionFile: ctx.sessionManager.getSessionFile() ?? undefined,
       cwd: ctx.cwd,
     };
-    const base = path.join(inbox, `${id}-${++seq}`);
+    const base = path.join(inbox, `${id}-${Date.now()}-${randomUUID().slice(0, 8)}`);
     // Write then rename, so the parent never reads a partial file.
     fs.writeFileSync(`${base}.tmp`, JSON.stringify(report));
     fs.renameSync(`${base}.tmp`, `${base}.json`);
+    reported = true;
+    if (marker) fs.writeFileSync(marker, "");
   }
 
   function lastAssistantText(ctx: ExtensionContext): string {
@@ -167,32 +196,26 @@ function setupChild(pi: ExtensionAPI, inbox: string) {
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const { summary } = params as { summary: string };
-      writeReport(ctx, "done", summary);
-      reported = true;
-      if (!keepOpen) ctx.shutdown();
-      return {
-        content: [
-          {
-            type: "text",
-            text: keepOpen
-              ? "Report sent to the main agent. This session stays open for the user."
-              : "Report sent to the main agent. Shutting down.",
-          },
-        ],
-        details: undefined,
-        terminate: !keepOpen,
-      };
+      let delivered = true;
+      try {
+        writeReport(ctx, "done", summary);
+      } catch {
+        delivered = false;
+      }
+      // Without a main agent, stay open so the user can read the result here.
+      const close = delivered && !keepOpen;
+      if (close) ctx.shutdown();
+      const text = !delivered
+        ? "The main agent is gone, so the report was not delivered. This session stays open; give the user your result here."
+        : keepOpen
+          ? "Report sent to the main agent. This session stays open for the user."
+          : "Report sent to the main agent. Shutting down.";
+      return { content: [{ type: "text", text }], details: undefined, terminate: close };
     },
   });
 
-  pi.on("session_start", async () => {
-    // A --tools allowlist from spawn.sh may not name the tool, so force it on.
-    pi.setActiveTools([...new Set([...pi.getActiveTools(), TOOL_NAME])]);
-  });
-
   pi.on("session_shutdown", async (event, ctx) => {
-    if (event.reason !== "quit" || reported) return;
-    reported = true;
+    if (event.reason !== "quit" || hasReported()) return;
     try {
       const last = lastAssistantText(ctx);
       writeReport(

@@ -13,8 +13,9 @@ $@
 
 - `extensions/subagent.ts` gives this pi an inbox and exports `PI_SUBAGENT_INBOX`,
   `PI_SUBAGENT_MODEL` and `PI_SUBAGENT_THINKING` to the bash tool.
-- `spawn.sh` (next to this file) opens a new tmux column and starts an interactive pi
-  there with the task file as its first prompt.
+- `spawn.sh` (next to this file) copies the task into a private run directory, opens a
+  new tmux column and starts an interactive pi there with the task as its first prompt.
+  The run directory is removed when the subagent exits.
 - The subagent calls `subagent_report` when done. The report arrives here as a
   `subagent-report` message: it starts a turn when idle, or queues as a follow-up when
   busy. Then the subagent's pane closes, unless `--keep-open` was used.
@@ -26,17 +27,19 @@ stop. Do not start pi in a pane by hand instead.
 
 ## Steps
 
-1. **Write the task file** to `/tmp/pi-subagent-<name>.md`. The subagent has none of this
-   conversation's context, so make it self-contained:
+1. **Write the task.** The subagent has none of this conversation's context, so make it
+   self-contained:
    - Goal and expected outcome.
    - Relevant paths, symbols, commands and facts already established here.
    - Constraints (for example read-only, do not commit, do not run builds) and the
      user's restrictions that apply.
    - What to put in the report.
-2. **Start it**:
+2. **Start it**, passing the task on stdin with a quoted heredoc:
 
    ```bash
-   ~/.pi/agent/skills/subagent/spawn.sh --name <name> [--model <provider/id[:thinking]>] [--keep-open] [--cwd <dir>] /tmp/pi-subagent-<name>.md
+   ~/.pi/agent/skills/subagent/spawn.sh --name <name> [--model <provider/id[:thinking]>] [--keep-open] [--cwd <dir>] - <<'TASK'
+   # Task: ...
+   TASK
    ```
 
    - `--name`: short kebab-case label (`fix-login-test`, `scout-auth`).
@@ -46,10 +49,11 @@ stop. Do not start pi in a pane by hand instead.
    - `--keep-open`: only when the user asks to keep the pane or session open.
    - `--cwd`: only when the work belongs in another directory. Default is the current
      directory.
-3. **Tell the user** in one line: name, pane ID and model (from the script's output line).
+3. **Tell the user** in one line, from the script's output: the subagent's name first,
+   then pane ID and model, for example "`scout-auth` (pane `%118`, opus, thinking high)".
    Then continue with other work or end the turn.
 
-Several subagents can run in parallel: write one task file per subagent and start each.
+Several subagents can run in parallel: start each with its own task and name.
 
 ## While it runs
 
@@ -60,12 +64,15 @@ Several subagents can run in parallel: write one task file per subagent and star
 
 ## When a report arrives
 
+- Refer to the subagent by name, with the pane ID in parentheses.
 - `done`: summarise the result for the user. Act on it only if the original request
   said what to do next.
 - `exited-without-report`: the subagent quit before reporting (Ctrl+C, or the user
   closed it). The message carries its last reply. Tell the user.
 - `failed`: pi exited with an error, usually a bad model or a startup crash. The pane
   stays open with the error. Tell the user the pane ID.
+- "Malformed subagent report": a report file could not be parsed. Show the user the
+  raw content from the message.
 - For details beyond the summary, read the session file named in the report.
 - With `--keep-open`, a subagent may send more reports later if the user keeps working
   with it.
