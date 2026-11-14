@@ -101,6 +101,7 @@ tmux send-keys -t "$PANE" 'tail -f logs/app.log' Enter
 
 ## Driving Pi in a Pane
 
+- When the user asks for a subagent or wants to delegate a task to another agent, use the `subagent` skill instead of starting pi in a column by hand.
 - Quit an interactive pi with `tmux send-keys -t %N C-d`. Ctrl+C may only clear the editor and not exit.
 - Greyed-out text in the pi input box is a prompt suggestion (supi-prompt-suggestions extension), not user input. Ignore it.
 
