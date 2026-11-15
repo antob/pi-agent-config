@@ -2,8 +2,8 @@
   "lastChangelogVersion": "1.5.2",
   "theme": "system",
   "defaultProvider": "claude-bridge",
-  "defaultModel": "claude-sonnet-5-5",
-  "defaultThinkingLevel": "high",
+  "defaultModel": "claude-opus-5-5",
+  "defaultThinkingLevel": "medium",
   "hideThinkingBlock": false,
   "enabledModels": [
     "claude-bridge/claude-opus-5-5",
@@ -14,13 +14,8 @@
     "openrouter/moonshotai/kimi-k3",
     "claude-bridge/claude-fable-5-2"
   ],
-  "defaultTools": [
-    "+codemode",
-    "+tool_search"
-  ],
-  "npmCommand": [
-    "bun"
-  ],
+  "defaultTools": ["+codemode", "+tool_search"],
+  "npmCommand": ["bun"],
   "enableInstallTelemetry": false,
   "enableAnalytics": false,
   "editorPaddingX": 0,
