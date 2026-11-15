@@ -21,6 +21,10 @@
       "$defaults",
       "Trusted hosts: the user's own home-lab machines reachable over SSH (hyllan.lan, desktob.lan, pihole.lan, laptob.lan). Read-only diagnostics and routine administration on them are normal work; destructive or irreversible changes there still need direct user authorization.",
       "Trusted internal domains: *.lan, *.antob.net"
+    ],
+    "allow": [
+      "$defaults",
+      "Pi skills and extensions: when the user's own message directly asks to create or update a specific skill or extension, creating or editing its files is authorized. Scope: /home/tob/Projects/pi-agent-config/skills/<name>/ and /home/tob/Projects/pi-agent-config/extensions/<name>/ (use this repo path, not ~/.pi/agent). This does not cover extensions/pi-automode/, auto-mode configuration, auth.json, trust.json, settings.json, or any file the request does not name."
     ]
   },
   "permissions": {
