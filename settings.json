@@ -11,10 +11,16 @@
     "claude-bridge/claude-haiku-5-5",
     "openrouter/deepseek/deepseek-v4.1-flash-1017",
     "ollama/ornith-1.5:35b",
-    "openrouter/moonshotai/kimi-k3"
+    "openrouter/moonshotai/kimi-k3",
+    "claude-bridge/claude-fable-5-2"
   ],
-  "defaultTools": ["+codemode", "+tool_search"],
-  "npmCommand": ["bun"],
+  "defaultTools": [
+    "+codemode",
+    "+tool_search"
+  ],
+  "npmCommand": [
+    "bun"
+  ],
   "enableInstallTelemetry": false,
   "enableAnalytics": false,
   "editorPaddingX": 0,
