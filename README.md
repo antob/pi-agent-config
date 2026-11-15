@@ -4,15 +4,14 @@ Personal configuration for the [pi coding agent](https://github.com/mariozechner
 
 ## Layout
 
-| Path | Purpose |
-| --- | --- |
-| `extensions/` | Custom extensions. |
-| `skills/` | Instruction sets loaded on demand via `SKILL.md`. |
-| `AGENTS.md` | Global instructions for every project. |
-| `settings.json` | Pi settings, default model, enabled models, packages. |
-| `models.json`, `llama_cpp_preset.ini` | Custom model and local llama.cpp config. |
-| `keybindings.json`, `session-recap.json`, `model-advisor.json`, `supi/` | Per extension and package settings. |
-| `deprecated/` | Retired extensions, skills, agents, prompts and themes. Kept for a while before deletion or restore. Gitignored. |
+| Path                                                                    | Purpose                                               |
+| ----------------------------------------------------------------------- | ----------------------------------------------------- |
+| `extensions/`                                                           | Custom extensions.                                    |
+| `skills/`                                                               | Instruction sets loaded on demand via `SKILL.md`.     |
+| `AGENTS.md`                                                             | Global instructions for every project.                |
+| `settings.json`                                                         | Pi settings, default model, enabled models, packages. |
+| `models.json`, `llama_cpp_preset.ini`                                   | Custom model and local llama.cpp config.              |
+| `keybindings.json`, `session-recap.json`, `model-advisor.json`, `supi/` | Per extension and package settings.                   |
 
 Not tracked: `auth.json`, `trust.json`, `models-store.json`, `sessions/`, `node_modules/`, `npm/`.
 
@@ -40,6 +39,15 @@ Optional config in `model-advisor.json` (defaults shown):
 ```
 
 `enabled: false` turns off the automatic dialog; `/model-advice` keeps working. Writes under `~/.pi/agent/extensions/` are blocked by pi-automode, so edit the extension through `~/Projects/pi-agent-config/extensions/model-advisor/`.
+
+### notify-unfocused
+
+Desktop notification (`notify-send`, with `pi-icon.svg`) when pi finishes a run or waits on a UI prompt such as `ask_user` or an automode confirmation. Based on the Claude Code hook `~/.config/claude/hooks/notify-unfocused.sh`.
+
+- Skipped when the pane's tmux window is the current window of a focused tmux client. Needs tmux `focus-events on`. Outside tmux it always notifies.
+- Title is the project name (the main repo for a git worktree). Body is the session name and worktree, if any, then "Finished" or "Waiting for input".
+- No notification for runs aborted with Escape, or in modes without a UI.
+- Subagent panes only notify when waiting, since their result goes to the parent agent.
 
 ## Packages
 
