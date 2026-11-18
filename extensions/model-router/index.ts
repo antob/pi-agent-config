@@ -1,34 +1,48 @@
 /**
- * Model advisor for claude-bridge: suggests Haiku, Sonnet, Opus or Fable plus a
+ * Model router for claude-bridge: picks Haiku, Sonnet, Opus or Fable plus a
  * thinking level for a task, following Anthropic's model selection guidance.
  *
- * On the first prompt of a claude-bridge session it offers a switch before the
- * first request, when the switch is free. `/model-advice` gives the same advice
- * on demand. See model-advisor-plan.md.
+ * Registers the virtual model `claude-bridge/auto`, which picks a model on the
+ * first prompt of a session and stays on it. With a physical claude-bridge
+ * model selected, the first prompt instead offers a switch before the first
+ * request, when the switch is free. `/model-advice` gives the same advice on
+ * demand. See model-router-plan.md.
  *
- * Config: ~/.pi/agent/model-advisor.json
+ * Config: ~/.pi/agent/model-router.json
  */
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getAgentDir, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { Model } from "@earendil-works/pi-ai";
+import type { Message, Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 
 const PROVIDER = "claude-bridge";
+const AUTO_ID = "auto";
+// VIRTUAL_MODEL_API in core/virtual-models.ts, not exported from the package index.
+const VIRTUAL_API = "pi-virtual";
 const FAMILIES = ["haiku", "sonnet", "opus", "fable"] as const;
 const LEVELS = ["low", "medium", "high"] as const;
 const PROMPT_MAX_CHARS = 4000;
-const CONFIG_PATH = join(getAgentDir(), "model-advisor.json");
-const STATUS_KEY = "model-advisor";
+const CONFIG_PATH = join(getAgentDir(), "model-router.json");
+const STATUS_KEY = "model-router";
 
 type Family = (typeof FAMILIES)[number];
 type Level = (typeof LEVELS)[number];
 
-interface AdvisorConfig {
+interface RouterConfig {
   enabled: boolean;
   model: string;
   timeoutMs: number;
   allowFable: boolean;
+}
+
+/** Router state of `claude-bridge/auto`, stored on the session branch. */
+interface AutoState {
+  modelId: string;
+  level: Level;
+  // reason and source are not read back; they explain the pick in the session file.
+  reason: string;
+  source: "model" | "fallback" | "kept";
 }
 
 interface Suggestion {
@@ -42,7 +56,7 @@ interface Suggestion {
   ms: number;
 }
 
-const DEFAULT_CONFIG: AdvisorConfig = {
+const DEFAULT_CONFIG: RouterConfig = {
   enabled: true,
   model: "openrouter/deepseek/deepseek-v4.1-flash-1017",
   timeoutMs: 4000,
@@ -50,7 +64,7 @@ const DEFAULT_CONFIG: AdvisorConfig = {
 };
 
 // Distilled from Anthropic's "Choosing the right model" page and the Claude Code
-// model-config docs (sources in model-advisor-plan.md).
+// model-config docs (sources in model-router-plan.md).
 const RUBRIC: Record<Family, string> = {
   haiku:
     "Simple, well-scoped tasks where speed matters: quick questions, lookups, explaining a " +
@@ -69,6 +83,13 @@ const RUBRIC: Record<Family, string> = {
     "outage investigations, architecture decisions, multistep deep research ending in a " +
     "finished document. Billed to pay-as-you-go usage credits on this plan, so pick it only " +
     "when Opus at high effort would likely fall short.",
+};
+
+// The thinking level selected on `auto` is a budget: the families it may pick.
+const BUDGET: Record<Level, readonly Family[]> = {
+  low: ["haiku", "sonnet"],
+  medium: ["haiku", "sonnet", "opus"],
+  high: FAMILIES,
 };
 
 const LEVEL_GUIDE =
@@ -99,7 +120,17 @@ const KEYWORDS: Record<Exclude<Family, "fable">, RegExp[]> = {
 // Config and models
 // =============================================================================
 
-function loadConfig(): AdvisorConfig {
+/** loadConfig for the router, which must not fail a request over a bad config file. */
+function configOrDefaults(ctx: ExtensionContext): RouterConfig {
+  try {
+    return loadConfig();
+  } catch (err) {
+    if (ctx.hasUI) ctx.ui.notify(`model-router: ${errorText(err)}, using defaults`, "warning");
+    return DEFAULT_CONFIG;
+  }
+}
+
+function loadConfig(): RouterConfig {
   let raw: unknown;
   try {
     raw = JSON.parse(readFileSync(CONFIG_PATH, "utf8"));
@@ -110,16 +141,18 @@ function loadConfig(): AdvisorConfig {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     throw new Error(`${CONFIG_PATH} must contain a JSON object`);
   }
-  return { ...DEFAULT_CONFIG, ...(raw as Partial<AdvisorConfig>) };
+  return { ...DEFAULT_CONFIG, ...(raw as Partial<RouterConfig>) };
 }
 
-/** Newest claude-bridge model per family from the scoped models (enabledModels). */
-function familyModels(ctx: ExtensionContext, config: AdvisorConfig): Map<Family, Model<any>> {
+/**
+ * Newest claude-bridge model per family from the scoped models (enabledModels),
+ * or from all available models when enabledModels lists none.
+ */
+function familyModels(ctx: ExtensionContext, config: RouterConfig): Map<Family, Model<any>> {
   const found = new Map<Family, Model<any>>();
-  const candidates = ctx.scopedModels
-    .map((scoped) => scoped.model)
-    .filter((model) => model.provider === PROVIDER)
-    .sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
+  let candidates = ctx.scopedModels.map((scoped) => scoped.model).filter(isBridgeModel);
+  if (candidates.length === 0) candidates = ctx.modelRegistry.getAvailable().filter(isBridgeModel);
+  candidates.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
   for (const model of candidates) {
     const family = FAMILIES.find((name) => model.id.includes(name));
     if (!family || found.has(family)) continue;
@@ -129,14 +162,23 @@ function familyModels(ctx: ExtensionContext, config: AdvisorConfig): Map<Family,
   return found;
 }
 
-function advisorModel(ctx: ExtensionContext, config: AdvisorConfig): Model<any> {
+function sideModel(ctx: ExtensionContext, config: RouterConfig): Model<any> {
   const slash = config.model.indexOf("/");
   if (slash <= 0) throw new Error(`invalid model "${config.model}"`);
   const model = ctx.modelRegistry.find(config.model.slice(0, slash), config.model.slice(slash + 1));
   if (!model) throw new Error(`model ${config.model} not found`);
   // Side calls through claude-bridge would draw on the Claude quota.
-  if (model.provider === PROVIDER) throw new Error(`advisor model must not use ${PROVIDER}`);
+  if (model.provider === PROVIDER) throw new Error(`side model must not use ${PROVIDER}`);
   return model;
+}
+
+/** Whether a model is a virtual catalog entry. Exported for claude-usage-band.ts. */
+export function isVirtual(model: { api: string } | undefined): boolean {
+  return model?.api === VIRTUAL_API;
+}
+
+function isBridgeModel(model: Model<any> | undefined): model is Model<any> {
+  return model?.provider === PROVIDER && !isVirtual(model);
 }
 
 function clip(text: string): string {
@@ -180,14 +222,18 @@ function parseReply(text: string, families: Family[]): { family: Family; level: 
 
 async function askModel(
   ctx: ExtensionContext,
-  config: AdvisorConfig,
+  config: RouterConfig,
   prompt: string,
   families: Family[],
+  signal?: AbortSignal,
 ): Promise<{ family: Family; level: Level; reason: string }> {
-  const model = advisorModel(ctx, config);
+  const model = sideModel(ctx, config);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), config.timeoutMs);
+  const onAbort = () => controller.abort();
+  signal?.addEventListener("abort", onAbort, { once: true });
   try {
+    if (signal?.aborted) throw new Error("aborted");
     // No reasoning option: omitting it disables thinking on the APIs used here.
     const response = await ctx.modelRegistry
       .streamSimple(
@@ -199,6 +245,7 @@ async function askModel(
         { signal: controller.signal, cacheRetention: "none", maxTokens: 200 },
       )
       .result();
+    if (signal?.aborted) throw new Error("aborted");
     if (controller.signal.aborted) throw new Error(`timed out after ${config.timeoutMs} ms`);
     if (response.stopReason !== "stop") {
       throw new Error(response.errorMessage || `stopped with ${response.stopReason}`);
@@ -210,6 +257,7 @@ async function askModel(
     return parseReply(text, families);
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
   }
 }
 
@@ -228,18 +276,29 @@ function keywordFallback(prompt: string, families: Family[]): { family: Family; 
   return { family: best, level, reason: bestScore ? "keyword match" : "no strong signal, default" };
 }
 
-async function suggest(ctx: ExtensionContext, config: AdvisorConfig, prompt: string): Promise<Suggestion> {
+async function suggest(
+  ctx: ExtensionContext,
+  config: RouterConfig,
+  prompt: string,
+  allowed: readonly Family[] = FAMILIES,
+  signal?: AbortSignal,
+): Promise<Suggestion> {
   const models = familyModels(ctx, config);
-  const families = FAMILIES.filter((family) => models.has(family));
-  if (families.length === 0) throw new Error(`no ${PROVIDER} models in enabledModels`);
+  const available = FAMILIES.filter((family) => models.has(family));
+  if (available.length === 0) throw new Error(`no ${PROVIDER} models available`);
+  // FAMILIES runs smallest first: when the budget rules out every available family, take the smallest.
+  const inBudget = available.filter((family) => allowed.includes(family));
+  const families = inBudget.length > 0 ? inBudget : [available[0]!];
 
   const started = Date.now();
   let picked: { family: Family; level: Level; reason: string };
   let source: Suggestion["source"] = "model";
   let error: string | undefined;
   try {
-    picked = await askModel(ctx, config, prompt, families);
+    if (!prompt.trim()) throw new Error("empty prompt");
+    picked = await askModel(ctx, config, prompt, families, signal);
   } catch (err) {
+    if (signal?.aborted) throw err;
     picked = keywordFallback(prompt, families);
     source = "fallback";
     error = err instanceof Error ? err.message : String(err);
@@ -279,6 +338,34 @@ function userPrompts(ctx: ExtensionContext): string[] {
   return prompts;
 }
 
+function lastUserText(messages: readonly Message[]): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i]!;
+    if (message.role === "user") return messageText(message.content).trim();
+  }
+  return "";
+}
+
+function toLevel(level: string | undefined): Level {
+  if (level === "off" || level === "minimal" || level === "low") return "low";
+  if (level === "high" || level === "xhigh") return "high";
+  return "medium";
+}
+
+/** Latest successful claude-bridge reply on the branch, for requests that carry no history. */
+function lastBridgeReply(ctx: ExtensionContext): { model: Model<any>; thinkingLevel?: ModelThinkingLevel } | undefined {
+  const branch = ctx.sessionManager.getBranch();
+  for (let i = branch.length - 1; i >= 0; i--) {
+    const entry = branch[i]!;
+    if (entry.type !== "message" || entry.message.role !== "assistant") continue;
+    const reply = entry.message;
+    if (reply.provider !== PROVIDER || reply.stopReason === "error" || reply.stopReason === "aborted") continue;
+    const model = ctx.modelRegistry.find(PROVIDER, reply.model);
+    if (isBridgeModel(model)) return { model, thinkingLevel: reply.thinkingLevel };
+  }
+  return undefined;
+}
+
 /** Subagent children and sessions started with an explicit --model are left alone. */
 function modelChosenElsewhere(): boolean {
   if (process.env.PI_SUBAGENT_ID) return true;
@@ -303,52 +390,113 @@ export default function (pi: ExtensionAPI) {
     const target = `${modelName(suggestion.model)} · ${suggestion.level}`;
     const switchLabel = `Switch to ${target}${midSession ? " (re-sends the history uncached)" : ""}`;
     const keepLabel = `Keep ${current(ctx)}`;
-    const choice = await ctx.ui.select(`Model advisor: ${describe(suggestion)}`, [switchLabel, keepLabel]);
+    const choice = await ctx.ui.select(`Model router: ${describe(suggestion)}`, [switchLabel, keepLabel]);
     if (choice !== switchLabel) {
-      ctx.ui.setStatus(STATUS_KEY, `advisor: kept, suggested ${target}`);
+      ctx.ui.setStatus(STATUS_KEY, `router: kept, suggested ${target}`);
       return false;
     }
     if (!(await pi.setModel(suggestion.model))) {
-      ctx.ui.notify(`model-advisor: no credentials for ${suggestion.model.id}`, "error");
+      ctx.ui.notify(`model-router: no credentials for ${suggestion.model.id}`, "error");
       return false;
     }
     // setModel resets the level to the model default, so set it afterwards.
     pi.setThinkingLevel(suggestion.level);
-    ctx.ui.setStatus(STATUS_KEY, `advisor: switched to ${target}`);
+    ctx.ui.setStatus(STATUS_KEY, `router: switched to ${target}`);
     return true;
   }
+
+  // Picks a model on the first prompt and stays on it: with claude-bridge every
+  // model change imports the history into a fresh, uncached Claude Code session.
+  pi.registerVirtualModel<AutoState>({
+    provider: PROVIDER,
+    id: AUTO_ID,
+    name: "Auto",
+    thinkingLevels: LEVELS,
+    async route(request, ctx) {
+      if (request.reason === "retry" && request.failed) {
+        return { model: request.failed.model, thinkingLevel: request.failed.thinkingLevel ?? "medium" };
+      }
+      if (request.reason === "direct") {
+        // Compaction summaries and extension calls: no router state, so follow the bridge
+        // model of the conversation. Callers that ask for no thinking (handoff) get none.
+        const previous = isBridgeModel(request.previous?.model) ? request.previous : lastBridgeReply(ctx);
+        const off = request.thinkingLevel === "off";
+        if (previous) return { model: previous.model, thinkingLevel: off ? "off" : (previous.thinkingLevel ?? "medium") };
+        const models = familyModels(ctx, configOrDefaults(ctx));
+        const fallback = models.get("sonnet") ?? FAMILIES.map((family) => models.get(family)).find(Boolean);
+        if (!fallback) throw new Error(`no ${PROVIDER} models available`);
+        return { model: fallback, thinkingLevel: off ? "off" : "medium" };
+      }
+
+      // Keep the bridge model that answered last when the stored pick differs (auto selected
+      // mid-session, or again after a detour to a physical model): a switch would re-import.
+      const state = request.state;
+      const previous = request.previous;
+      if (previous && isBridgeModel(previous.model) && previous.model.id !== state?.modelId) {
+        const level = toLevel(previous.thinkingLevel);
+        const kept: AutoState = { modelId: previous.model.id, level, reason: "kept the model that answered", source: "kept" };
+        if (ctx.hasUI) ctx.ui.setStatus(STATUS_KEY, `auto: kept ${modelName(previous.model)} · ${level}`);
+        return { model: previous.model, thinkingLevel: level, state: kept };
+      }
+      const stored = state && ctx.modelRegistry.find(PROVIDER, state.modelId);
+      if (state && isBridgeModel(stored)) return { model: stored, thinkingLevel: state.level };
+
+      if (ctx.hasUI) ctx.ui.setStatus(STATUS_KEY, "auto: choosing a model...");
+      let suggestion: Suggestion;
+      try {
+        const allowed = BUDGET[toLevel(request.thinkingLevel)];
+        suggestion = await suggest(ctx, configOrDefaults(ctx), lastUserText(request.messages), allowed, request.signal);
+      } catch (err) {
+        if (ctx.hasUI) ctx.ui.setStatus(STATUS_KEY, `auto: ${errorText(err)}`);
+        throw err;
+      }
+      const target = `${modelName(suggestion.model)} · ${suggestion.level}`;
+      if (ctx.hasUI) {
+        const status =
+          suggestion.source === "model"
+            ? `auto: ${target}, ${suggestion.reason}`
+            : `auto: guess ${target} (${suggestion.error})`;
+        ctx.ui.setStatus(STATUS_KEY, status);
+      }
+      return {
+        model: suggestion.model,
+        thinkingLevel: suggestion.level,
+        state: { modelId: suggestion.model.id, level: suggestion.level, reason: suggestion.reason, source: suggestion.source },
+      };
+    },
+  });
 
   pi.on("session_start", async (_event, ctx) => {
     if (ctx.hasUI) ctx.ui.setStatus(STATUS_KEY, undefined);
   });
 
   pi.on("input", async (event, ctx) => {
-    if (ctx.model?.provider !== PROVIDER || !ctx.hasUI) return;
+    if (ctx.model?.provider !== PROVIDER || isVirtual(ctx.model) || !ctx.hasUI) return;
     if (event.source !== "interactive" || event.streamingBehavior) return;
     const text = event.text.trim();
     if (!text || text.startsWith("/") || userPrompts(ctx).length > 0) return;
     if (modelChosenElsewhere()) return;
 
-    let config: AdvisorConfig;
+    let config: RouterConfig;
     let suggestion: Suggestion;
     try {
       config = loadConfig();
       if (!config.enabled) return;
-      ctx.ui.setStatus(STATUS_KEY, "advisor: choosing a model...");
+      ctx.ui.setStatus(STATUS_KEY, "router: choosing a model...");
       suggestion = await suggest(ctx, config, text);
     } catch (err) {
-      ctx.ui.setStatus(STATUS_KEY, `advisor: ${errorText(err)}`);
+      ctx.ui.setStatus(STATUS_KEY, `router: ${errorText(err)}`);
       return;
     }
 
     const target = `${modelName(suggestion.model)} · ${suggestion.level}`;
     if (isCurrent(ctx, suggestion)) {
-      ctx.ui.setStatus(STATUS_KEY, `advisor: ${target} fits`);
+      ctx.ui.setStatus(STATUS_KEY, `router: ${target} fits`);
       return;
     }
     // A keyword guess is too weak to interrupt for; show it without asking.
     if (suggestion.source === "fallback") {
-      ctx.ui.setStatus(STATUS_KEY, `advisor: guess ${target} (${suggestion.error})`);
+      ctx.ui.setStatus(STATUS_KEY, `router: guess ${target} (${suggestion.error})`);
       return;
     }
     await offer(ctx, suggestion, false);
@@ -366,7 +514,7 @@ export default function (pi: ExtensionAPI) {
         return;
       }
 
-      let config: AdvisorConfig;
+      let config: RouterConfig;
       let suggestion: Suggestion;
       try {
         config = loadConfig();
@@ -382,6 +530,13 @@ export default function (pi: ExtensionAPI) {
 
       if (dryRun || ctx.model?.provider !== PROVIDER) {
         ctx.ui.notify(`model-advice: ${describe(suggestion)}\n(${via})`, "info");
+        return;
+      }
+      if (isVirtual(ctx.model)) {
+        ctx.ui.notify(
+          `model-advice: ${describe(suggestion)}\n(${via})\nAuto keeps its pick; switch with /model.`,
+          "info",
+        );
         return;
       }
       if (isCurrent(ctx, suggestion)) {

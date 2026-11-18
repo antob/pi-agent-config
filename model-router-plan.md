@@ -1,4 +1,6 @@
-# Model advisor for claude-bridge
+# Model router for claude-bridge
+
+Renamed from model-advisor on 2026-11-18 (extension dir, config file `model-router.json`, status key, this file). The `/model-advice` command keeps its name. Earlier sections use the old wording.
 
 Status: plan agreed (A1, B1, C1). Phase 1 done and confirmed live (2026-11-15). Phases 1 to 4 done (2026-11-15). Phases 1 to 3 tested live; phase 4 added the README entry. Quota awareness (C2) not done.
 
@@ -16,7 +18,7 @@ Phase 3 choices beyond the plan:
 
 - No dialog for subagent children (`PI_SUBAGENT_ID`) or sessions started with `--model`: their first prompt arrives as `interactive` with nobody to answer, or the model was chosen explicitly.
 - A keyword-fallback suggestion only goes to the status line, no dialog.
-- Status line key `model-advisor`: `choosing a model...`, `<model> fits`, `switched to ...`, `kept, suggested ...`, `guess ... (<error>)`. Cleared on `session_start`.
+- Status line key `model-router`: `choosing a model...`, `<model> fits`, `switched to ...`, `kept, suggested ...`, `guess ... (<error>)`. Cleared on `session_start`.
 - `/model-advice` without text refuses to switch while the agent runs.
 
 Phase 2 results (`/model-advice`, DeepSeek, 611 to 914 ms each, all as expected):
@@ -37,7 +39,7 @@ provider: fresh query model=claude-haiku-5-5[1m] msgs=1 ... resume=none effort=l
 
 The switch and the level apply to the same run, and there is no re-import. A later prompt in a switched session resumes the Claude Code session normally (`resume=<id>`, model and effort kept).
 
-Writes: pi-automode hard-denies every path under `~/.pi/agent/extensions/` (`isSafetyControlPath`, `paths.ts`). Edit via `~/Projects/pi-agent-config/extensions/model-advisor/`, which the user's allow rule covers.
+Writes: pi-automode hard-denies every path under `~/.pi/agent/extensions/` (`isSafetyControlPath`, `paths.ts`). Edit via `~/Projects/pi-agent-config/extensions/model-router/`, which the user's allow rule covers.
 
 ## Goal
 
@@ -79,7 +81,7 @@ Rules derived from the sources:
 
 ## Design
 
-One directory: `extensions/model-advisor/index.ts`. Config: `~/.pi/agent/model-advisor.json`, read on each use, same shape as `session-recap.json`:
+One directory: `extensions/model-router/index.ts`. Config: `~/.pi/agent/model-router.json`, read on each use, same shape as `session-recap.json`:
 
 ```json
 {
@@ -128,3 +130,46 @@ Command `/model-advice [text]`:
 ## Open questions
 
 - Should skill invocations (`/skill:...`) be classified? Skipped in v1.
+
+## Investigation: virtual model routing instead of the input hook (2026-11-18)
+
+Source: https://docs.pi.dev/latest/virtual-models, `core/virtual-models.d.ts` in Pi 1.5.2 (API present), pi-claude-bridge 0.12.0 `src/index.ts`.
+
+Idea: register `claude-bridge/auto` with `pi.registerVirtualModel`. `route()` classifies the first `user` request with the side model, stores the pick as router state, and returns the same physical model for every later request.
+
+Bridge compatibility (source reading, not tested):
+
+- The bridge only sees the physical model (`streamSimple(model, ...)`, `claudeCodeModelId(model)`), so the first routed request takes row 1 (clean start), same as today's pre-request switch.
+- Row 3 (full uncached import) triggers on `state.model !== modelId` or a changed prompt append (`syncSharedSession`, line ~597). Effort is a per-query option, so changing only the thinking level per turn does not re-import. Whether Anthropic's prompt cache survives an effort change is unverified.
+- Listing under provider `claude-bridge` keeps `ctx.model.provider === "claude-bridge"`, which the bridge's bash timeout hook (line ~2356) and `claude-usage-band.ts` rely on.
+
+Gains:
+
+- Uses a supported mechanism instead of `setModel` inside an `input` handler. No first-prompt detection, no `--model`/subagent heuristics: choosing `auto` is the opt-in, and it works without UI (subagents, print mode).
+- Footer shows `auto • level → physical • level`; `/session` shows cost per physical model.
+- State follows the session tree and survives resume and compaction.
+- `retry` with `request.failed` can fall back on overload or rate limit (natural place for C2 quota awareness).
+- The virtual thinking level can act as a budget, for example `low` caps at Sonnet, `medium` at Opus, `high` allows Fable. `allowFable` still applies on top.
+
+Costs and breakage:
+
+- The Switch/Keep dialog (B1) goes away. `route()` gets an `ExtensionContext`, so `ctx.ui.select` is possible, but it blocks inside the request path. Override is picking a physical model with `/model`.
+- `handoff.ts` calls `complete(ctx.model!)` directly; with a virtual model that is api `pi-virtual` and fails. Needs the last physical model or `ctx.modelRegistry.streamSimple`.
+- `claude-usage-band.ts` `seedCache` compares assistant `m.model` to `ctx.model.id` (`auto`), so the cache seed is always null. Needs the last response's model.
+- `subagent.ts` exports `claude-bridge/auto` as `PI_SUBAGENT_MODEL`, so children route themselves. Probably fine, but a choice.
+- `direct` requests (compaction summary, extension calls) have no state; route them to `previous` or Haiku.
+- Mid-session re-route (`/model-advice` without text) still costs a re-import; it would reset the router state so the next `user` request re-classifies.
+
+Open: keep the input-hook path for physical selections, or remove it and make `auto` the default model.
+
+### Implemented (2026-11-18, not tested live)
+
+- `claude-bridge/auto` in `extensions/model-router/index.ts`. Levels `low`/`medium`/`high` as budget (`BUDGET`). Route: `retry` returns `failed`; `direct` returns a bridge `previous`, else the latest successful bridge reply on the branch, else Sonnet (or the smallest available) at `medium`, with `off` when the request asks for `off`; a bridge `previous` that differs from the stored pick wins and becomes new state (source `kept`), so returning to `auto` never switches models; then the stored pick; otherwise classify the last user message (empty text goes straight to the keyword fallback), store `{modelId, level, reason, source}`. Status line `auto: ...`, also on router errors. A bad config file falls back to defaults with a warning; a budget with no available family takes the smallest available family; with no bridge models in `enabledModels`, all available bridge models are considered.
+- Input hook kept for physical selections, skipped when the selection is virtual. `/model-advice` without text only notifies when `auto` is selected.
+- `handoff.ts` uses `ctx.modelRegistry.streamSimple` (routes virtual models as `direct`, resolves auth) and throws on `stopReason: "error"`.
+- `claude-usage-band.ts` `seedCache` accepts any bridge model when the selection is virtual.
+- Typecheck passes against the Pi 1.5.2 types in the nix store. The repo's `node_modules` still has pi-coding-agent 0.84.2, so `npm run typecheck` in the repo will fail on `registerVirtualModel` until dependencies are reinstalled.
+- `claude-bridge/auto` is in `enabledModels` (`settings.json`).
+- Review fixes (subagent review, 2026-11-18, all 11 findings): the route order and fallbacks described above. `claude-usage-band.ts` imports `isVirtual` from `model-router/index.ts` and keeps the cache on `model_select` only when the next request goes to the model that replied last. `handoff.ts` shows generation errors instead of "Cancelled".
+
+Test plan: `/model claude-bridge/auto`, new session, short question (expect Haiku or Sonnet, footer `auto • ... → ...`, bridge log row 1); second prompt in that session (no re-import, `resume=<id>`); `auto:low` with a refactor prompt (capped at Sonnet); switch to `auto` mid-session (status `kept`); `/compact` and `/handoff` under `auto`; resume the session and check the usage band seeds the cache.

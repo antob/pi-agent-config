@@ -5,6 +5,7 @@
 
 import type { ExtensionAPI, ExtensionContext, Theme } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { isVirtual } from "./model-router/index.ts";
 
 const PROVIDER = "claude-bridge";
 const WIDGET_KEY = "claude-usage-band";
@@ -68,8 +69,11 @@ export function parseWindows(headers: Record<string, string>): Windows {
   return out;
 }
 
-/** Cache state of a resumed session: the latest bridge reply of the current model, unless a compaction followed it. */
-export function seedCache(entries: Entries, modelId: string): CacheState | null {
+/**
+ * Cache state of a resumed session: the latest bridge reply of the current model, unless a compaction followed it.
+ * `modelId` undefined accepts any bridge model: a virtual selection (`claude-bridge/auto`) stays on the model that replied last.
+ */
+export function seedCache(entries: Entries, modelId: string | undefined): CacheState | null {
   for (let i = entries.length - 1; i >= 0; i--) {
     const entry = entries[i]!;
     if (entry.type === "compaction") return null;
@@ -77,7 +81,8 @@ export function seedCache(entries: Entries, modelId: string): CacheState | null 
     const m = entry.message as any;
     if (m.role !== "assistant") continue;
     const tokens = m.usage?.totalTokens;
-    if (m.provider !== PROVIDER || m.model !== modelId || !(tokens > 0) || !(m.timestamp > 0)) return null;
+    if (m.provider !== PROVIDER || (modelId !== undefined && m.model !== modelId)) return null;
+    if (!(tokens > 0) || !(m.timestamp > 0)) return null;
     return { lastAt: m.timestamp, tokens };
   }
   return null;
@@ -221,7 +226,7 @@ export default function (pi: ExtensionAPI) {
     state.windows = {};
     state.cache =
       ctx.model?.provider === PROVIDER && event.reason !== "new"
-        ? seedCache(ctx.sessionManager.getBranch(), ctx.model.id)
+        ? seedCache(ctx.sessionManager.getBranch(), isVirtual(ctx.model) ? undefined : ctx.model.id)
         : null;
     refresh(ctx);
   });
@@ -232,8 +237,13 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("model_select", async (event, ctx) => {
-    const prev = event.previousModel;
-    if (prev?.provider !== event.model.provider || prev?.id !== event.model.id) {
+    // The cache survives only if the next request goes to the model that replied last.
+    // A virtual selection (`claude-bridge/auto`) keeps that model.
+    const model = event.model;
+    if (
+      model.provider !== PROVIDER ||
+      !seedCache(ctx.sessionManager.getBranch(), isVirtual(model) ? undefined : model.id)
+    ) {
       state.cache = null;
     }
     refresh(ctx, event.model.provider);

@@ -2,7 +2,7 @@
   "lastChangelogVersion": "1.5.2",
   "theme": "system",
   "defaultProvider": "claude-bridge",
-  "defaultModel": "claude-opus-5-5",
+  "defaultModel": "auto",
   "defaultThinkingLevel": "medium",
   "hideThinkingBlock": false,
   "enabledModels": [
@@ -12,7 +12,8 @@
     "openrouter/deepseek/deepseek-v4.1-flash-1017",
     "ollama/ornith-1.5:35b",
     "openrouter/moonshotai/kimi-k3",
-    "claude-bridge/claude-fable-5-2"
+    "claude-bridge/claude-fable-5-2",
+    "claude-bridge/auto"
   ],
   "defaultTools": ["+codemode", "+tool_search"],
   "npmCommand": ["bun"],

@@ -12,7 +12,7 @@
  * The generated prompt appears as a draft in the editor for review/editing.
  */
 
-import { complete, type Message } from "@earendil-works/pi-ai/compat";
+import type { Message } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, SessionEntry } from "@earendil-works/pi-coding-agent";
 import {
   BorderedLoader,
@@ -82,6 +82,7 @@ export default function (pi: ExtensionAPI) {
       const currentSessionFile = ctx.sessionManager.getSessionFile();
 
       // Generate the handoff prompt with loader UI
+      let failure: string | undefined;
       const result = await ctx.ui.custom<string | null>(
         (tui, theme, _kb, done) => {
           const loader = new BorderedLoader(
@@ -92,15 +93,6 @@ export default function (pi: ExtensionAPI) {
           loader.onAbort = () => done(null);
 
           const doGenerate = async () => {
-            const auth = await ctx.modelRegistry.getApiKeyAndHeaders(
-              ctx.model!,
-            );
-            if (!auth.ok || !auth.apiKey) {
-              throw new Error(
-                auth.ok ? `No API key for ${ctx.model!.provider}` : auth.error,
-              );
-            }
-
             const userMessage: Message = {
               role: "user",
               content: [
@@ -112,18 +104,20 @@ export default function (pi: ExtensionAPI) {
               timestamp: Date.now(),
             };
 
-            const response = await complete(
-              ctx.model!,
-              { systemPrompt: SYSTEM_PROMPT, messages: [userMessage] },
-              {
-                apiKey: auth.apiKey,
-                headers: auth.headers,
-                signal: loader.signal,
-              },
-            );
+            // The registry resolves auth and routes a virtual model (reason "direct").
+            const response = await ctx.modelRegistry
+              .streamSimple(
+                ctx.model!,
+                { systemPrompt: SYSTEM_PROMPT, messages: [userMessage] },
+                { signal: loader.signal },
+              )
+              .result();
 
             if (response.stopReason === "aborted") {
               return null;
+            }
+            if (response.stopReason === "error") {
+              throw new Error(response.errorMessage ?? "request failed");
             }
 
             return response.content
@@ -137,7 +131,7 @@ export default function (pi: ExtensionAPI) {
           doGenerate()
             .then(done)
             .catch((err) => {
-              console.error("Handoff generation failed:", err);
+              failure = err instanceof Error ? err.message : String(err);
               done(null);
             });
 
@@ -146,7 +140,8 @@ export default function (pi: ExtensionAPI) {
       );
 
       if (result === null) {
-        ctx.ui.notify("Cancelled", "info");
+        if (failure) ctx.ui.notify(`handoff: ${failure}`, "error");
+        else ctx.ui.notify("Cancelled", "info");
         return;
       }
 
