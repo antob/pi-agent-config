@@ -4,7 +4,7 @@
   "defaultProvider": "claude-bridge",
   "defaultModel": "auto",
   "defaultThinkingLevel": "medium",
-  "hideThinkingBlock": false,
+  "hideThinkingBlock": true,
   "enabledModels": [
     "claude-bridge/claude-opus-5-5",
     "claude-bridge/claude-sonnet-5-5",
